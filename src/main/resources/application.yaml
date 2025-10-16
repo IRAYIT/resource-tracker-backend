@@ -1,0 +1,44 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - env
+
+spring:
+  #Database Configuration
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=RESOURCES;encrypt=false;trustServerCertificate=true;
+    username: gotracrat
+    password: Dev@12345!
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+  openingsEmailEnabled: true
+  mail:
+    host: smtp.gmail.com
+    password: uhsagoqmwzqyxlnn
+    port: 587
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    username: jeevanteja000@gmail.com
+  servlet:
+    multipart:
+      maxFileSize: 100MB
+      max-request-size: 100MB
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+
+server:
+  port: 8098
+
+actuator:
+  username: admin
+  secret: secret@2020
