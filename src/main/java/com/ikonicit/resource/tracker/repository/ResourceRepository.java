@@ -24,6 +24,8 @@ public interface ResourceRepository extends JpaRepository<Resource, Integer> {
 
     Resource findByResourceName(String resourceName);
 
+    List<Resource> findAllByResourceName(String resourceName);
+
     Resource findByEmail(String email);
 
     @Query(value = "select r.email from Resource r where r.status != :status", nativeQuery = true)
