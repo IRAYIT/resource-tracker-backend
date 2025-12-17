@@ -1,15 +1,19 @@
 package com.ikonicit.resource.tracker.service;
 
-import com.ikonicit.resource.tracker.dto.LeaveRequestDTO;
-import com.ikonicit.resource.tracker.dto.ResourceDTO;
+import com.ikonicit.resource.tracker.dto.*;
 import com.ikonicit.resource.tracker.entity.LeaveRequest;
+import com.ikonicit.resource.tracker.entity.LeaveType;
 import com.ikonicit.resource.tracker.entity.Resource;
-import com.ikonicit.resource.tracker.exception.ResourceNotFoundException;
+import com.ikonicit.resource.tracker.exception.BadRequestException;
 import com.ikonicit.resource.tracker.repository.LeaveRequestRepository;
+import com.ikonicit.resource.tracker.repository.LeaveTypeRepository;
 import com.ikonicit.resource.tracker.repository.ResourceRepository;
+import com.ikonicit.resource.tracker.utils.LeaveStatus;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -28,66 +32,119 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     private LeaveRequestRepository leaveRequestRepository;
 
     @Autowired
+    private LeaveTypeRepository leaveTypeRepository;
+
+    @Autowired
     private ResourceRepository resourceRepository;
 
-    public LeaveRequestDTO createLeaveRequest(LeaveRequestDTO leaveRequestDTO) {
+    @Transactional
+    public LeaveResponseDTO createLeaveRequest(LeaveRequestDTO leaveRequestDTO) {
+        LeaveType leaveType = leaveTypeRepository.findById(leaveRequestDTO.getLeaveTypeId())
+                .orElseThrow(() -> new BadRequestException("Leave Type is Not Valid"));
+
+        Resource resource = resourceRepository.findById(leaveRequestDTO.getResourceId())
+                .orElseThrow(() -> new BadRequestException("Invalid resource"));
+
         LeaveRequest leaveRequest = new LeaveRequest();
         BeanUtils.copyProperties(leaveRequestDTO, leaveRequest);
-        leaveRequest.setTotalDays(calculateDaysBetweenDates(
-                leaveRequestDTO.getAbsenceFrom(),leaveRequestDTO.getAbsenceTo()));
-        Resource resource = new Resource();
-        BeanUtils.copyProperties(leaveRequestDTO.getResourceDTO(), resource);
-        leaveRequest.setEmail(resource.getEmail());
-        leaveRequest.setResource(resource);
-        leaveRequestRepository.save(leaveRequest);
-     return leaveRequestDTO;
-
-    }
-
-
-    public LeaveRequestDTO updateLeaveRequest(LeaveRequestDTO leaveRequestDTO) {
-        LeaveRequest leaveRequest = new LeaveRequest();
-        BeanUtils.copyProperties(leaveRequestDTO, leaveRequest);
-        leaveRequest.setTotalDays(calculateDaysBetweenDates(
-                leaveRequestDTO.getAbsenceFrom(),leaveRequestDTO.getAbsenceTo()));
-        Resource resource = new Resource();
-        BeanUtils.copyProperties(leaveRequestDTO.getResourceDTO(), resource);
-        leaveRequest.setEmail(resource.getEmail());
-        leaveRequest.setResource(resource);
-        leaveRequestRepository.save(leaveRequest);
-        return leaveRequestDTO;
-
-    }
-
-
-    public void deleteLeaveRequest(Integer id) {
-        leaveRequestRepository.deleteById(id);
-    }
-
-    public LeaveRequestDTO getLeaveRequestById(Integer id) {
-        LeaveRequest leaveRequest = null;
-        LeaveRequestDTO leaveRequestDTO = new LeaveRequestDTO();
-
-        Optional<LeaveRequest> leaveRequestOptional = leaveRequestRepository.findById(id);
-        if (isNotNull.test(leaveRequestOptional) && leaveRequestOptional.isPresent()) {
-            leaveRequest = leaveRequestOptional.get();
-            Resource resource=new Resource();
-            BeanUtils.copyProperties(leaveRequest.getResource(),resource);
-
-            leaveRequest.setEmail(resource.getEmail());
-
-
-            ResourceDTO resourceDTO = new ResourceDTO();
-            BeanUtils.copyProperties(resource, resourceDTO);
-            resourceDTO.setPermissionId(resource.getPermission().getId());
-            resourceDTO.setManagerId(resource.getManager().getId());
-
-            leaveRequestDTO.setResourceDTO(resourceDTO);
-            BeanUtils.copyProperties(leaveRequest, leaveRequestDTO);
-        } else {
-            throw new ResourceNotFoundException("Leave request with id not found");
+        if (leaveRequest.getLeaveStatus() == null) {
+            leaveRequest.setLeaveStatus(LeaveStatus.PENDING);
         }
-        return leaveRequestDTO;
+        leaveRequest.setTotalDays(calculateDaysBetweenDates(
+                leaveRequestDTO.getAbsenceFrom(), leaveRequestDTO.getAbsenceTo()));
+        leaveRequest.setLeaveType(leaveType);
+        leaveRequest.setResource(resource);
+        leaveRequest.setEmail(resource.getEmail());
+        leaveRequest.setDate(new Date());
+        LeaveRequest savedReq = leaveRequestRepository.save(leaveRequest);
+
+        LeaveResponseDTO leaveResponseDTO = new LeaveResponseDTO();
+        leaveResponseDTO.setId(savedReq.getId());
+        BeanUtils.copyProperties(leaveRequest, leaveResponseDTO);
+        leaveResponseDTO.setResourceId(resource.getId());
+        LeaveTypeDTO leaveTypeDTO = new LeaveTypeDTO();
+        BeanUtils.copyProperties(savedReq.getLeaveType(), leaveTypeDTO);
+        leaveResponseDTO.setLeaveTypeDTO(leaveTypeDTO);
+        if(savedReq.getResource().getManager() != null)
+            leaveResponseDTO.setManagerId(savedReq.getResource().getManager().getId());
+        return leaveResponseDTO;
+    }
+
+    @Transactional
+    public LeaveResponseDTO updateLeaveRequest(LeaveRequestDTO leaveRequestDTO) {
+        if(leaveRequestDTO.getId() == null){
+            throw new BadRequestException("LeaveRequest Id is required");
+        }
+
+        LeaveRequest existingLeaveRequest = leaveRequestRepository.findById(leaveRequestDTO.getId())
+                .orElseThrow(() -> new BadRequestException("LeaveRequest not found"));
+
+        if (leaveRequestDTO.getResourceId() != null) {
+            Resource resource = resourceRepository.findById(leaveRequestDTO.getResourceId())
+                    .orElseThrow(() -> new BadRequestException("Invalid resource"));
+            existingLeaveRequest.setResource(resource);
+            existingLeaveRequest.setEmail(resource.getEmail());
+        }
+
+        if (leaveRequestDTO.getLeaveTypeId() != null) {
+            LeaveType leaveType = leaveTypeRepository.findById(leaveRequestDTO.getLeaveTypeId())
+                    .orElseThrow(() -> new BadRequestException("Invalid Leave Type"));
+            existingLeaveRequest.setLeaveType(leaveType);
+        }
+
+        existingLeaveRequest.setAbsenceFrom(leaveRequestDTO.getAbsenceFrom());
+        existingLeaveRequest.setAbsenceTo(leaveRequestDTO.getAbsenceTo());
+        existingLeaveRequest.setReason(leaveRequestDTO.getReason());
+        existingLeaveRequest.setTotalDays(calculateDaysBetweenDates(
+                leaveRequestDTO.getAbsenceFrom(), leaveRequestDTO.getAbsenceTo()));
+
+        LeaveRequest updatedLeaveRequest = leaveRequestRepository.save(existingLeaveRequest);
+
+        LeaveResponseDTO leaveResponseDTO = new LeaveResponseDTO();
+        leaveResponseDTO.setId(updatedLeaveRequest.getId());
+        BeanUtils.copyProperties(updatedLeaveRequest, leaveResponseDTO);
+        leaveResponseDTO.setResourceId(updatedLeaveRequest.getResource().getId());
+        LeaveTypeDTO leaveTypeDTO = new LeaveTypeDTO();
+        BeanUtils.copyProperties(updatedLeaveRequest.getLeaveType(), leaveTypeDTO);
+        leaveResponseDTO.setLeaveTypeDTO(leaveTypeDTO);
+        if(updatedLeaveRequest.getResource().getManager() != null)
+            leaveResponseDTO.setManagerId(updatedLeaveRequest.getResource().getManager().getId());
+        return leaveResponseDTO;
+
+    }
+
+
+    public DeletedLeaveResponseDTO deleteLeaveRequest(Integer id) {
+        DeletedLeaveResponseDTO deletedLeaveRequestDTO = new DeletedLeaveResponseDTO();
+        Optional<LeaveRequest> leaveRequestOptional = leaveRequestRepository.findById(id);
+        if(!leaveRequestOptional.isPresent()){
+            throw new BadRequestException("Invalid LeaveRequest ID");
+        }
+        deletedLeaveRequestDTO.setId(id);
+        leaveRequestRepository.deleteById(id);
+        deletedLeaveRequestDTO.setStatus("Deleted Leave Request");
+        deletedLeaveRequestDTO.setMessage("Deleted Leave Request Successfully");
+        return deletedLeaveRequestDTO;
+    }
+
+    public LeaveResponseDTO getLeaveRequestById(Integer id) {
+
+        LeaveRequest leaveRequest = leaveRequestRepository.findById(id)
+                .orElseThrow(() -> new BadRequestException("Leave request with id " + id + " not found"));
+
+        LeaveResponseDTO leaveResponseDTO = new LeaveResponseDTO();
+        BeanUtils.copyProperties(leaveRequest, leaveResponseDTO);
+        LeaveTypeDTO leaveTypeDTO = new LeaveTypeDTO();
+        BeanUtils.copyProperties(leaveRequest.getLeaveType(), leaveTypeDTO);
+        leaveResponseDTO.setLeaveTypeDTO(leaveTypeDTO);
+        if(leaveRequest.getResource() != null) {
+            leaveResponseDTO.setResourceId(leaveRequest.getResource().getId());
+            leaveResponseDTO.setEmployeeName(leaveRequest.getResource().getFirstName() +" "+  leaveRequest.getResource().getLastName());
+            if (leaveRequest.getResource().getManager() != null)
+                leaveResponseDTO.setManagerId(leaveRequest.getResource().getManager().getId());
+        }
+
+        return leaveResponseDTO;
     }
 
     public int getTotalDays(Integer id) {
@@ -101,113 +158,133 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
     }
 
     @Override
-    public List<LeaveRequestDTO> getAll() {
+    public List<LeaveResponseDTO> getAll() {
         List<LeaveRequest> leaveRequests = leaveRequestRepository.findAll();
-        List<LeaveRequestDTO> leaveRequestDTOList = new ArrayList<>();
+        List<LeaveResponseDTO> leaveResponseDTOList = new ArrayList<>();
 
-        for (LeaveRequest leaveRequest : leaveRequests) {
-            LeaveRequestDTO leaveRequestDTO = new LeaveRequestDTO();
+        for(LeaveRequest leaveRequest : leaveRequests){
 
-            if (leaveRequest.getResource() != null) {
-                Resource resource = new Resource();
-                BeanUtils.copyProperties(leaveRequest.getResource(), resource);
+            LeaveResponseDTO leaveResponseDTO = new LeaveResponseDTO();
+            BeanUtils.copyProperties(leaveRequest, leaveResponseDTO);
 
-                ResourceDTO resourceDTO = new ResourceDTO();
-                BeanUtils.copyProperties(resource, resourceDTO);
+            LeaveTypeDTO leaveTypeDTO = new LeaveTypeDTO();
+            BeanUtils.copyProperties(leaveRequest.getLeaveType(), leaveTypeDTO);
+            leaveResponseDTO.setLeaveTypeDTO(leaveTypeDTO);
 
-                if (resource.getPermission() != null) {
-                    resourceDTO.setPermissionId(resource.getPermission().getId());
-                }
-
-                if (resource.getManager() != null) {
-                    resourceDTO.setManagerId(resource.getManager().getId());
-                }
-
-                leaveRequestDTO.setResourceDTO(resourceDTO);
+            if(leaveRequest.getResource() != null) {
+                leaveResponseDTO.setResourceId(leaveRequest.getResource().getId());
+                leaveResponseDTO.setEmployeeName(leaveRequest.getResource().getFirstName() +" "+  leaveRequest.getResource().getLastName());
+                if (leaveRequest.getResource().getManager() != null)
+                    leaveResponseDTO.setManagerId(leaveRequest.getResource().getManager().getId());
             }
 
-            BeanUtils.copyProperties(leaveRequest, leaveRequestDTO);
-            leaveRequestDTOList.add(leaveRequestDTO);
+            leaveResponseDTOList.add(leaveResponseDTO);
         }
 
-        return leaveRequestDTOList;
+        return leaveResponseDTOList;
     }
 
     @Override
-    public List<LeaveRequestDTO> getLeaveRequestByResourceId(Integer resourceId) {
+    public List<LeaveResponseDTO> getLeaveRequestByResourceId(Integer resourceId) {
 
         List<LeaveRequest> leaveRequests= leaveRequestRepository.findByResourceId(resourceId);
-        List<LeaveRequestDTO> leaveRequestDTOList = new ArrayList<>();
-        for (LeaveRequest leaveRequest : leaveRequests) {
-            Resource resource=new Resource();
-            BeanUtils.copyProperties(leaveRequest.getResource(),resource);
-            LeaveRequestDTO leaveRequestDTO = new LeaveRequestDTO();
-            BeanUtils.copyProperties(leaveRequest, leaveRequestDTO);
-            ResourceDTO resourceDTO = new ResourceDTO();
-            BeanUtils.copyProperties(resource, resourceDTO);
-            resourceDTO.setPermissionId(resource.getPermission().getId());
-            resourceDTO.setManagerId(resource.getManager().getId());
-            leaveRequestDTO.setResourceDTO(resourceDTO);
-            leaveRequestDTOList.add(leaveRequestDTO);
-        };
-         return leaveRequestDTOList  ;
-    }
-//
-    @Override
-    public List<LeaveRequestDTO> getLeaveRequestBymanagerId(Integer managerId) {
-        List<LeaveRequest> leaveRequests= leaveRequestRepository.findByResource_ManagerId(managerId);
-        List<LeaveRequestDTO> leaveRequestDTOList = new ArrayList<>();
 
-        for (LeaveRequest leaveRequest : leaveRequests) {
+        List<LeaveResponseDTO> leaveResponseDTOList = new ArrayList<>();
 
-            Resource resource=new Resource();
-            BeanUtils.copyProperties(leaveRequest.getResource(),resource);
-            leaveRequest.setEmail(resource.getEmail());
+        for(LeaveRequest leaveRequest : leaveRequests){
+            LeaveResponseDTO leaveResponseDTO = new LeaveResponseDTO();
+            BeanUtils.copyProperties(leaveRequest, leaveResponseDTO);
 
-            LeaveRequestDTO leaveRequestDTO = new LeaveRequestDTO();
-            BeanUtils.copyProperties(leaveRequest, leaveRequestDTO);
-            ResourceDTO resourceDTO=new ResourceDTO();
-            BeanUtils.copyProperties(resource, resourceDTO);
-            resourceDTO.setPermissionId(resource.getPermission().getId());
-            resourceDTO.setManagerId(resource.getManager().getId());
+            LeaveTypeDTO leaveTypeDTO = new LeaveTypeDTO();
+            BeanUtils.copyProperties(leaveRequest.getLeaveType(), leaveTypeDTO);
+            leaveResponseDTO.setLeaveTypeDTO(leaveTypeDTO);
 
-            leaveRequestDTO.setResourceDTO(resourceDTO);
-            leaveRequestDTOList.add(leaveRequestDTO);
+            if(leaveRequest.getResource() != null) {
+                leaveResponseDTO.setResourceId(leaveRequest.getResource().getId());
+                leaveResponseDTO.setEmployeeName(leaveRequest.getResource().getFirstName() +" "+  leaveRequest.getResource().getLastName());
+                if (leaveRequest.getResource().getManager() != null)
+                    leaveResponseDTO.setManagerId(leaveRequest.getResource().getManager().getId());
+            }
+
+            leaveResponseDTOList.add(leaveResponseDTO);
         }
-        return leaveRequestDTOList;
+
+         return leaveResponseDTOList ;
+    }
+
+    @Override
+    public List<LeaveResponseDTO> getLeaveRequestBymanagerId(Integer managerId) {
+        List<LeaveRequest> leaveRequests= leaveRequestRepository
+                .findByResource_ManagerIdAndResource_StatusNot(managerId, "TERMINATED");
+
+        List<LeaveResponseDTO> leaveResponseDTOList = new ArrayList<>();
+
+        for(LeaveRequest leaveRequest : leaveRequests){
+            LeaveResponseDTO leaveResponseDTO = new LeaveResponseDTO();
+            BeanUtils.copyProperties(leaveRequest, leaveResponseDTO);
+
+            LeaveTypeDTO leaveTypeDTO = new LeaveTypeDTO();
+            BeanUtils.copyProperties(leaveRequest.getLeaveType(), leaveTypeDTO);
+            leaveResponseDTO.setLeaveTypeDTO(leaveTypeDTO);
+
+            if(leaveRequest.getResource() != null) {
+                leaveResponseDTO.setResourceId(leaveRequest.getResource().getId());
+                leaveResponseDTO.setEmployeeName(leaveRequest.getResource().getFirstName() +" "+  leaveRequest.getResource().getLastName());
+                if (leaveRequest.getResource().getManager() != null)
+                    leaveResponseDTO.setManagerId(leaveRequest.getResource().getManager().getId());
+            }
+
+            leaveResponseDTOList.add(leaveResponseDTO);
+        }
+        return leaveResponseDTOList;
     }
 
     private int calculateDaysBetweenDates(Date fromDate, Date toDate) {
         LocalDate startDate = fromDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
         LocalDate endDate = toDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
-        return Math.toIntExact(Math.abs(daysBetween));
+        if(endDate.isBefore(startDate)) throw new BadRequestException("End date must be after start date");
+        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        return (int) daysBetween;
     }
-//    private List<LeaveRequestDTO> buildLeaveRequestDTOList(List<LeaveRequest> leaveRequests) {
-//        List<LeaveRequestDTO> leaveRequestDTOS = new ArrayList<>();
-//        leaveRequests.forEach( leaveRequest-> {
-//            leaveRequestDTOS.add(buildLeaveRequestDTO(leaveRequest));
-//        });
-//        return leaveRequestDTOS;
-//    }
-//    private List<LeaveRequestDTO> buildLeaveRequestDTOSList(List<LeaveRequest> leaveRequests) {
-//        List<LeaveRequestDTO> leaveRequestDTOS = new ArrayList<>();
-//        leaveRequests.forEach(leaveRequest -> {
-//            leaveRequestDTOS.add(buildLeaveRequestDTO(leaveRequest));
-//        });
-//        return leaveRequestDTOS;
-//    }
-//
-////    private LeaveRequest buildLeaveRequest(LeaveRequestDTO leaveRequestDTO) {
-////        LeaveRequest leaveRequest = new LeaveRequest();
-////        Resource resource = new Resource();
-////        BeanUtils.copyProperties(leaveRequestDTO.getResourceDTO(),resource);
-////        resource.setId(leaveRequestDTO.getResourceId());
-////        BeanUtils.copyProperties(leaveRequestDTO,leaveRequest);
-////        leaveRequest.setEmail(resource.getEmail());
-////        return leaveRequest;
-////    }
-////
-/////
+
+    @Override
+    public List<LeaveTypeDTO> getLeaveTypes() {
+        ArrayList<LeaveTypeDTO> leaveTypeDTOlist = new ArrayList<>();
+
+        List<LeaveType> leaveTypes = leaveTypeRepository.findAll();
+        leaveTypes.forEach(leaveType -> {
+            LeaveTypeDTO leaveTypeDTO = new LeaveTypeDTO();
+            BeanUtils.copyProperties(leaveType, leaveTypeDTO);
+            leaveTypeDTOlist.add(leaveTypeDTO);
+        });
+
+        return leaveTypeDTOlist;
+    }
+
+    @Transactional
+    public String updateStatus(LeaveReqUpdateStatusDTO leaveReqUpdateStatusDTO){
+
+        LeaveRequest leaveRequest = leaveRequestRepository
+                .findById(leaveReqUpdateStatusDTO.getLeaveReqId())
+                .orElseThrow(() -> new BadRequestException("Leave Request Not Found"));
+
+        if(leaveRequest.getLeaveStatus() != LeaveStatus.PENDING){
+            throw new BadRequestException("Leave status cannot be updated once it is "+ leaveRequest.getLeaveStatus());
+        }
+
+        LeaveStatus newLeaveStatus;
+        try{
+         newLeaveStatus = LeaveStatus.valueOf(leaveReqUpdateStatusDTO.getStatus().name());}
+        catch(IllegalArgumentException ex){
+            throw new BadRequestException("Invalid Leave Status : "+ leaveReqUpdateStatusDTO.getStatus());
+        }
+
+        leaveRequest.setLeaveStatus(newLeaveStatus);
+        leaveRequestRepository.save(leaveRequest);
+
+        return "Leave Status Updated Successfully";
+    }
+
+    
 
 }
