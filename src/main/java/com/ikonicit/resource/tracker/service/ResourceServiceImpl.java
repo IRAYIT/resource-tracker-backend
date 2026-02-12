@@ -294,12 +294,12 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @Cacheable("resourceByName")
-    public ResourceDTO findByResourceName(String resourceName) {
-        Resource resource = resourceRepository.findByResourceName(resourceName);
-        if (isNull.test(resource)) {
-            throw new ResourceNotFoundException("Resource Not Found in the database");
+    public List<ResourceDTO> findAllByResourceName(String resourceName) {
+        List<Resource> resourceList = resourceRepository.findAllByResourceName(resourceName);
+        if (!resourceList.isEmpty()) {
+            return buildResourcesDTO(resourceList);
         }
-        return buildResourceDTO(resource);
+        return Collections.emptyList();
     }
 
     @Override
