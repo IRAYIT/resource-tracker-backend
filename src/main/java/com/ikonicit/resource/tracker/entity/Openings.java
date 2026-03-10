@@ -66,6 +66,9 @@ public class Openings implements Serializable {
     @Column(name = "updated_by")
     private String updatedBy;
 
+    @Column(name = "public_url_key")
+    private String publicUrlKey;
+
 
 }
 

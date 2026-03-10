@@ -48,4 +48,8 @@ public class OpeningsDTO implements Serializable {
     private Date updatedAt;
 
     private String updatedBy;
+
+    private String publicUrlKey;
+
+    private String publicUrl;
 }

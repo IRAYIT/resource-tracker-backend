@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 /**
@@ -50,7 +51,12 @@ public class OpeningsServiceImpl implements OpeningsService {
 
     @Override
     public OpeningsDTO create(OpeningsDTO openingsDTO) {
-        Openings openings = openingsRepository.save(buildOpenings(openingsDTO));
+        Openings openings = buildOpenings(openingsDTO);
+
+        // generate public key
+        openings.setPublicUrlKey(generatePublicKey());
+
+        openings = openingsRepository.save(openings);
         if(openingsEmailEnabled) {
 //          newOpeningEmail(openingsDTO);
         }
@@ -107,6 +113,17 @@ public class OpeningsServiceImpl implements OpeningsService {
         return buildOpeningsDTOList(openingsRepository.saveAll(openings));
     }
 
+    @Override
+    public OpeningsDTO getOpeningByPublicUrlKey(String publicUrlKey) {
+
+        // fetch Optional once
+        Openings openings = openingsRepository.findByPublicUrlKey(publicUrlKey)
+                .orElseThrow(() -> new ResourceNotFoundException("Opening Not Found for the given public url key"));
+
+        // convert entity to DTO
+        return buildOpeningsDTO(openings);
+    }
+
     private void newOpeningEmail(OpeningsDTO openingsDTO) {
 
         List<String> emails = resourceRepository.findEmails(Constants.TERMINATED);
@@ -147,7 +164,19 @@ public class OpeningsServiceImpl implements OpeningsService {
     }
 
     private OpeningsDTO buildOpeningsDTO(Openings openings) {
+
         Gson gson = new Gson();
-        return gson.fromJson(gson.toJson(openings), OpeningsDTO.class);
+        OpeningsDTO dto = gson.fromJson(gson.toJson(openings), OpeningsDTO.class);
+
+        if(openings.getPublicUrlKey() != null) {
+            String publicUrl = "http://localhost:3000/jobs/apply/" + openings.getPublicUrlKey();
+            dto.setPublicUrl(publicUrl);
+        }
+
+        return dto;
+    }
+
+    private String generatePublicKey() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0,10);
     }
 }
