@@ -2,12 +2,20 @@ package com.ikonicit.resource.tracker.service;
 
 import com.google.gson.Gson;
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
-import com.ikonicit.resource.tracker.entity.Candidate;
+import com.ikonicit.resource.tracker.entity.CandidateAttachments;
+import com.ikonicit.resource.tracker.entity.Candidate_Openings;
 import com.ikonicit.resource.tracker.entity.Openings;
+import com.ikonicit.resource.tracker.entity.Resource;
+import com.ikonicit.resource.tracker.repository.CandidateAttachmentsRepository;
 import com.ikonicit.resource.tracker.repository.CandidateRepository;
 import com.ikonicit.resource.tracker.repository.OpeningsRepository;
+import com.ikonicit.resource.tracker.repository.ResourceRepository;
 import com.ikonicit.resource.tracker.utils.SkillDictionary;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
@@ -16,20 +24,26 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class CandidateServiceImpl implements CandidateService {
 
-    @Autowired
-    private CandidateRepository candidateRepository;
+    private final CandidateRepository candidateRepository;
 
-    @Autowired
-    private OpeningsRepository openingsRepository;
+    private final OpeningsRepository openingsRepository;
 
-    @Autowired
-    private ResumeParserService parserService;
+    private final ResumeParserService parserService;
+
+    private final CandidateAttachmentsRepository candidateAttachmentsRepository;
+
+    private final ResourceRepository resourceRepository;
+
+    private final EmailService emailService;
 
     public void applyForJob(String publicUrlKey,
                             String payload,
-                            MultipartFile resume) {
+                            MultipartFile cv,
+                            MultipartFile coverLetter,
+                            MultipartFile additionalDocuments) {
 
         Gson gson = new Gson();
         CandidateDTO request = gson.fromJson(payload, CandidateDTO.class);
@@ -40,7 +54,7 @@ public class CandidateServiceImpl implements CandidateService {
 
         try {
 
-            Candidate candidate = new Candidate();
+            Candidate_Openings candidate = new Candidate_Openings();
 
             // ===============================
             // Candidate Basic Details
@@ -52,18 +66,11 @@ public class CandidateServiceImpl implements CandidateService {
             candidate.setPhone(request.getPhone());
             candidate.setExperience(request.getExperience());
             candidate.setExpectedSalary(request.getExpectedSalary());
-//            candidate.setLocation(request.getLocation());
-//            candidate.setNoticePeriod(request.getNoticePeriod());
-//            candidate.setLanguagesKnown(request.getLanguagesKnown());
-//            candidate.setVisaStatus(request.getVisaStatus());
 
-            // ===============================
-            // Resume Details
-            // ===============================
-
-            candidate.setResume(resume.getBytes());
-            candidate.setResumeName(resume.getOriginalFilename());
-            candidate.setResumeType(resume.getContentType());
+            candidate.setLocation(request.getLocation());
+            candidate.setNoticePeriod(request.getNoticePeriod());
+            candidate.setLanguagesKnown(request.getLanguagesKnown());
+            candidate.setVisaStatus(request.getVisaStatus());
 
             candidate.setOpening(opening);
             candidate.setCreatedAt(LocalDateTime.now());
@@ -74,8 +81,9 @@ public class CandidateServiceImpl implements CandidateService {
             // ===============================
 
             String resumeText = normalize(
-                    Optional.ofNullable(parserService.extractText(resume)).orElse("")
+                    Optional.ofNullable(parserService.extractText(cv)).orElse("")
             );
+
             Set<String> resumeSkillSet = extractSkills(resumeText);
 
             // ===============================
@@ -94,11 +102,12 @@ public class CandidateServiceImpl implements CandidateService {
 
             Set<String> matchedSkills = new HashSet<>();
             int matchCount = 0;
-            for(String jdSkill : jdSkills){
 
-                for(String resumeSkill : resumeSkillSet){
+            for (String jdSkill : jdSkills) {
 
-                    if(resumeSkill.contains(jdSkill) || jdSkill.contains(resumeSkill)){
+                for (String resumeSkill : resumeSkillSet) {
+
+                    if (resumeSkill.contains(jdSkill) || jdSkill.contains(resumeSkill)) {
 
                         matchedSkills.add(jdSkill);
                         matchCount++;
@@ -106,30 +115,32 @@ public class CandidateServiceImpl implements CandidateService {
                     }
                 }
             }
-            // ===============================
-            // Keyword Score
-            // ===============================
-            double expScore = 100; // default if no experience requirement
 
-            if(opening.getExperience() != null && request.getExperience() != null){
+            // ===============================
+            // Experience Score
+            // ===============================
+
+            double expScore = 100;
+
+            if (opening.getExperience() != null && request.getExperience() != null) {
 
                 double requiredExp = opening.getExperience().doubleValue();
                 double candidateExp = request.getExperience();
 
-                if(requiredExp > 0){
+                if (requiredExp > 0) {
                     expScore = Math.min(candidateExp / requiredExp, 1) * 100;
-                } else {
-                    expScore = 100;
                 }
             }
+
+            // ===============================
+            // Job Description
+            // ===============================
 
             String jobDescription = normalize(
                     opening.getName() + " " +
                             opening.getTechnology() + " " +
                             opening.getSkill()
             );
-
-
 
             // ===============================
             // TF-IDF Similarity
@@ -141,13 +152,15 @@ public class CandidateServiceImpl implements CandidateService {
             ) * 100;
 
             // ===============================
-            // Final Score
+            // Final Score Calculation
             // ===============================
+
             double bonusScore = 0;
 
-            if(resumeSkillSet.size() > jdSkills.size()){
+            if (resumeSkillSet.size() > jdSkills.size()) {
                 bonusScore = 5;
             }
+
             double skillScore = jdSkills.isEmpty() ? 0 :
                     ((double) matchCount / jdSkills.size()) * 100;
 
@@ -156,41 +169,101 @@ public class CandidateServiceImpl implements CandidateService {
                             (expScore * 0.2) +
                             (tfidfScore * 0.2) +
                             bonusScore;
-            if(matchCount == 0){
+
+            if (matchCount == 0) {
                 finalScore = 0;
             }
-            if(Double.isNaN(finalScore) || Double.isInfinite(finalScore)){
+
+            if (Double.isNaN(finalScore) || Double.isInfinite(finalScore)) {
                 finalScore = 0;
             }
 
             finalScore = Math.max(0, Math.min(finalScore, 100));
 
-        // Round to 2 decimal places
             finalScore = Math.round(finalScore * 100.0) / 100.0;
 
             candidate.setMatchPercentage(finalScore);
+
             candidate.setMatchedSkills(
                     "Matched:" + String.join(",", matchedSkills) +
                             " | ResumeSkills:" + String.join(",", resumeSkillSet)
-            );            // ===============================
+            );
+
+            // ===============================
             // Save Candidate
             // ===============================
 
-
             candidateRepository.save(candidate);
 
-        } catch (IOException e) {
+            // ===============================
+            // Save Attachments
+            // ===============================
 
+            CandidateAttachments attachments = new CandidateAttachments();
+
+            attachments.setCandidateOpenings(candidate);
+
+            /* Resume */
+            attachments.setCv(cv.getBytes());
+            attachments.setCvName(cv.getOriginalFilename());
+            attachments.setCvType(cv.getContentType());
+
+            /* Cover Letter */
+            if (coverLetter != null && !coverLetter.isEmpty()) {
+                attachments.setCoverLetter(coverLetter.getBytes());
+                attachments.setCoverLetterName(coverLetter.getOriginalFilename());
+                attachments.setCoverLetterType(coverLetter.getContentType());
+            }
+
+            /* Additional Documents */
+            if (additionalDocuments != null && !additionalDocuments.isEmpty()) {
+                attachments.setAdditionalDocuments(additionalDocuments.getBytes());
+                attachments.setAdditionalDocumentName(additionalDocuments.getOriginalFilename());
+                attachments.setAdditionalDocumentType(additionalDocuments.getContentType());
+            }
+
+            candidateAttachmentsRepository.save(attachments);
+
+            // Send confirmation email
+            emailService.sendApplicationConfirmation(
+                    candidate.getEmail(),
+                    candidate.getFirstName(),
+                    opening.getName()
+            );
+            List<Resource> hrList = resourceRepository
+                    .findAllByPermissionIdAndStatus(1, "Active");
+            if (hrList.isEmpty()) {
+                throw new RuntimeException("No HR found");
+            }
+
+            List<String> hrEmails = hrList.stream()
+                    .map(Resource::getEmail)
+                    .filter(Objects::nonNull)   // safety
+                    .toList();
+
+            emailService.sendHrNotification(
+                    hrEmails,
+                    candidate.getFirstName() + " " + candidate.getLastName(),
+                    candidate.getEmail(),
+                    candidate.getPhone(),
+                    opening.getName(),
+                    candidate.getMatchPercentage()
+            );
+        } catch (IOException e) {
             throw new RuntimeException("Resume upload failed");
         }
     }
     @Override
     public CandidateDTO getCandidate(Long candidateId) {
 
-        Candidate candidate = candidateRepository.findById(candidateId)
+        Candidate_Openings candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
 
         CandidateDTO dto = new CandidateDTO();
+
+        // ===============================
+        // Candidate Details
+        // ===============================
 
         dto.setFirstName(candidate.getFirstName());
         dto.setLastName(candidate.getLastName());
@@ -198,20 +271,30 @@ public class CandidateServiceImpl implements CandidateService {
         dto.setPhone(candidate.getPhone());
         dto.setExperience(candidate.getExperience());
         dto.setExpectedSalary(candidate.getExpectedSalary());
-
-        dto.setResume(candidate.getResume());
-        dto.setResumeName(candidate.getResumeName());
-        dto.setResumeType(candidate.getResumeType());
+        dto.setLanguagesKnown(candidate.getLanguagesKnown());
+        dto.setNoticePeriod(candidate.getNoticePeriod());
+        dto.setVisaStatus(candidate.getVisaStatus());
         dto.setApplicationStatus(candidate.getApplicationStatus());
 
         return dto;
     }
 
     @Override
-    public CandidateDTO updateCandidate(Long candidateId, CandidateDTO candidateDTO) {
+    public CandidateDTO updateCandidate(Long candidateId,
+                                        String payload,
+                                        MultipartFile resume,
+                                        MultipartFile coverLetter,
+                                        MultipartFile additionalDocuments) {
 
-        Candidate candidate = candidateRepository.findById(candidateId)
+        Gson gson = new Gson();
+        CandidateDTO candidateDTO = gson.fromJson(payload, CandidateDTO.class);
+
+        Candidate_Openings candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
+
+        // ===============================
+        // Update Candidate Details
+        // ===============================
 
         candidate.setFirstName(candidateDTO.getFirstName());
         candidate.setLastName(candidateDTO.getLastName());
@@ -219,26 +302,78 @@ public class CandidateServiceImpl implements CandidateService {
         candidate.setPhone(candidateDTO.getPhone());
         candidate.setExperience(candidateDTO.getExperience());
         candidate.setExpectedSalary(candidateDTO.getExpectedSalary());
-
-        // ✅ Update resume
-        if (candidateDTO.getResume() != null) {
-            candidate.setResume(candidateDTO.getResume());
-            candidate.setResumeName(candidateDTO.getResumeName());
-            candidate.setResumeType(candidateDTO.getResumeType());
-        }
+        candidate.setLocation(candidateDTO.getLocation());
+        candidate.setLanguagesKnown(candidateDTO.getLanguagesKnown());
+        candidate.setNoticePeriod(candidateDTO.getNoticePeriod());
+        candidate.setVisaStatus(candidateDTO.getVisaStatus());
 
         candidateRepository.save(candidate);
 
+        // ===============================
+        // Get Attachments
+        // ===============================
+
+        CandidateAttachments attachments =
+                candidateAttachmentsRepository
+                        .findByCandidateOpenings(candidate)
+                        .orElse(new CandidateAttachments());
+
+        attachments.setCandidateOpenings(candidate);
+
+        try {
+
+            // ===============================
+            // Update Resume
+            // ===============================
+
+            if (resume != null && !resume.isEmpty()) {
+                attachments.setCv(resume.getBytes());
+                attachments.setCvName(resume.getOriginalFilename());
+                attachments.setCvType(resume.getContentType());
+            }
+
+            // ===============================
+            // Update Cover Letter
+            // ===============================
+
+            if (coverLetter != null && !coverLetter.isEmpty()) {
+                attachments.setCoverLetter(coverLetter.getBytes());
+                attachments.setCoverLetterType(coverLetter.getContentType());
+                attachments.setCoverLetterName(coverLetter.getOriginalFilename());
+            }
+
+            // ===============================
+            // Update Additional Documents
+            // ===============================
+
+            if (additionalDocuments != null && !additionalDocuments.isEmpty()) {
+                attachments.setAdditionalDocuments(additionalDocuments.getBytes());
+                attachments.setAdditionalDocumentName(additionalDocuments.getOriginalFilename());
+                attachments.setAdditionalDocumentType(additionalDocuments.getContentType());
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("File upload failed");
+        }
+
+        candidateAttachmentsRepository.save(attachments);
+
+        // ===============================
+        // Prepare Response
+        // ===============================
+
         CandidateDTO response = new CandidateDTO();
+
         response.setFirstName(candidate.getFirstName());
         response.setLastName(candidate.getLastName());
         response.setEmail(candidate.getEmail());
         response.setPhone(candidate.getPhone());
         response.setExperience(candidate.getExperience());
         response.setExpectedSalary(candidate.getExpectedSalary());
-        response.setResume(candidate.getResume());
-        response.setResumeName(candidate.getResumeName());
-        response.setResumeType(candidate.getResumeType());
+        response.setLocation(candidate.getLocation());
+        response.setLanguagesKnown(candidate.getLanguagesKnown());
+        response.setNoticePeriod(candidate.getNoticePeriod());
+        response.setVisaStatus(candidate.getVisaStatus());
         response.setApplicationStatus(candidate.getApplicationStatus());
 
         return response;
@@ -246,7 +381,7 @@ public class CandidateServiceImpl implements CandidateService {
 
     @Override
     public void updateCandidateStatus(Long candidateId, String applicationStatus) {
-        Candidate candidate = candidateRepository.findById(candidateId)
+        Candidate_Openings candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
 
         candidate.setApplicationStatus(applicationStatus);
@@ -257,23 +392,62 @@ public class CandidateServiceImpl implements CandidateService {
     @Override
     public String getCandidateStatus(Long candidateId) {
 
-        Candidate candidate = candidateRepository.findById(candidateId)
+        Candidate_Openings candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
 
         return candidate.getApplicationStatus();
     }
 
     @Override
-    public Candidate getCandidateResume(Long candidateId) {
+    public ResponseEntity<byte[]> getCv(Long candidateId) {
+        CandidateAttachments attachments = candidateAttachmentsRepository
+                .findByCandidateOpeningsId(candidateId)
+                .orElseThrow(() -> new RuntimeException("Resume not found"));
 
-        Candidate candidate = candidateRepository.findById(candidateId)
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=" + attachments.getCvName())
+                .contentType(MediaType.parseMediaType(attachments.getCvType()))
+                .body(attachments.getCv());
+    }
 
-        if (candidate.getResume() == null) {
-            throw new RuntimeException("Resume not found");
+    @Override
+    public ResponseEntity<byte[]> getCoverLetter(Long candidateId) {
+
+        CandidateAttachments attachments = candidateAttachmentsRepository
+                .findByCandidateOpeningsId(candidateId)
+                .orElseThrow(() -> new RuntimeException("Cover letter not found"));
+
+        byte[] fileData = attachments.getCoverLetter();
+
+        if (fileData == null) {
+            throw new RuntimeException("Cover letter not uploaded");
         }
 
-        return candidate;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=" + attachments.getCoverLetterName())
+                .contentType(MediaType.parseMediaType(attachments.getCoverLetterType()))
+                .body(fileData);
+    }
+    @Override
+    public ResponseEntity<byte[]> getAdditionalDocuments(Long candidateId) {
+
+        CandidateAttachments attachments = candidateAttachmentsRepository
+                .findByCandidateOpeningsId(candidateId)
+                .orElseThrow(() -> new RuntimeException("Documents not found"));
+
+        byte[] fileData = attachments.getAdditionalDocuments();
+
+        if (fileData == null) {
+            throw new RuntimeException("Additional document not uploaded");
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=" + attachments.getAdditionalDocumentName())
+                .contentType(MediaType.parseMediaType(attachments.getAdditionalDocumentType()))
+                .body(fileData);
     }
 
     private Map<String,Integer> wordFrequency(String text){

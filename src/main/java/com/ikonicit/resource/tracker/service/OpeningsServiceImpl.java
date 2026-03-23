@@ -3,6 +3,7 @@ package com.ikonicit.resource.tracker.service;
 import com.google.gson.Gson;
 import com.ikonicit.resource.tracker.dto.OpeningsDTO;
 import com.ikonicit.resource.tracker.entity.Openings;
+import com.ikonicit.resource.tracker.entity.Resource;
 import com.ikonicit.resource.tracker.exception.BadRequestException;
 import com.ikonicit.resource.tracker.exception.MailSendFailedException;
 import com.ikonicit.resource.tracker.exception.ResourceNotFoundException;
@@ -53,12 +54,15 @@ public class OpeningsServiceImpl implements OpeningsService {
     public OpeningsDTO create(OpeningsDTO openingsDTO) {
         Openings openings = buildOpenings(openingsDTO);
 
+        Resource hr = resourceRepository.findById(openingsDTO.getCreatedBy())
+                .orElseThrow(() -> new RuntimeException("HR not found"));
+
+        openings.setCreatedBy(hr);
         // generate public key
         openings.setPublicUrlKey(generatePublicKey());
-
         openings = openingsRepository.save(openings);
         if(openingsEmailEnabled) {
-//          newOpeningEmail(openingsDTO);
+          newOpeningEmail(openingsDTO);
         }
         return buildOpeningsDTO(openings);
     }
@@ -133,7 +137,7 @@ public class OpeningsServiceImpl implements OpeningsService {
                 try {
                     SimpleMailMessage message = new SimpleMailMessage();
                     message.setTo(email);
-                    message.setBcc("parasuramyerramsetty@gmail.com");
+//                    message.setBcc("");
                     message.setSubject(openingsDTO.getName());
                     message.setText("Dear Applicant's, \n\n" + openingsDTO.getName()+"(sscreativelabs.com)" + " \n" + "Technology:" + openingsDTO.getTechnology() + " \n" + "Skills:" + openingsDTO.getSkill() +" \n"
                             + "Package:" + openingsDTO.getPayment() +" \n"+ "Salary Type:" + openingsDTO.getPaymentType()+" \n" + "Hours:" + openingsDTO.getHours() + "\n"+"ShiftTimings:" + openingsDTO.getShiftTimings()+"\n"

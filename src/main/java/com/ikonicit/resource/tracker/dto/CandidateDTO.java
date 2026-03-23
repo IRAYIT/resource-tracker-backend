@@ -18,11 +18,31 @@ public class CandidateDTO {
 
     private Double expectedSalary;
 
-    private byte[] resume;
+    private String location;
 
-    private String resumeName;
+    private String languagesKnown;
 
-    private String resumeType;
+    private Integer noticePeriod;
+
+    private String visaStatus;
+
+    private byte[] cv;
+
+    private byte[] coverLetter;
+
+    private byte[] additionalDocuments;
+
+    private String cvName;
+
+    private String cvType;
+
+    private String coverLetterName;
+
+    private String coverLetterType;
+
+    private String additionalDocumentName;
+
+    private String additionalDocumentType;
 
     private String applicationStatus;
 

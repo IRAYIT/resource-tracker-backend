@@ -1,7 +1,7 @@
 package com.ikonicit.resource.tracker.controller;
 
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
-import com.ikonicit.resource.tracker.entity.Candidate;
+import com.ikonicit.resource.tracker.entity.Candidate_Openings;
 import com.ikonicit.resource.tracker.service.CandidateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -26,26 +26,62 @@ import java.io.IOException;
 
             @RequestParam("payload") String payload,
 
-            @RequestParam("resume") MultipartFile resume) throws IOException {
+            @RequestParam("cv") MultipartFile cv,
 
-        candidateService.applyForJob(publicUrlKey, payload, resume);
+            @RequestParam(value = "coverLetter", required = false) MultipartFile coverLetter,
+
+            @RequestParam(value = "additionalDocuments", required = false) MultipartFile additionalDocuments
+
+    ) throws IOException {
+
+        candidateService.applyForJob(publicUrlKey, payload, cv, coverLetter, additionalDocuments);
 
         return ResponseEntity.ok("Application submitted successfully");
     }
-
     @GetMapping("/get/{candidateId}")
     public ResponseEntity<CandidateDTO> getCandidate(@PathVariable Long candidateId) {
         CandidateDTO candidate = candidateService.getCandidate(candidateId);
         return ResponseEntity.ok(candidate);
     }
 
-    @PutMapping("/update/{candidateId}")
+    @PutMapping(value = "/update/{candidateId}", consumes = "multipart/form-data")
     public ResponseEntity<CandidateDTO> updateCandidate(
-            @PathVariable Long candidateId,
-            @RequestBody CandidateDTO candidateDTO) {
 
-        CandidateDTO updatedCandidate = candidateService.updateCandidate(candidateId, candidateDTO);
+            @PathVariable Long candidateId,
+
+            @RequestParam("payload") String payload,
+
+            @RequestParam(value = "resume", required = false) MultipartFile resume,
+
+            @RequestParam(value = "coverLetter", required = false) MultipartFile coverLetter,
+
+            @RequestParam(value = "additionalDocuments", required = false) MultipartFile additionalDocuments
+    ) {
+
+        CandidateDTO updatedCandidate = candidateService.updateCandidate(
+                candidateId,
+                payload,
+                resume,
+                coverLetter,
+                additionalDocuments
+        );
+
         return ResponseEntity.ok(updatedCandidate);
+    }
+
+    @GetMapping("/resume/{candidateId}")
+    public ResponseEntity<byte[]> getResume(@PathVariable Long candidateId) {
+        return candidateService.getCv(candidateId);
+    }
+
+    @GetMapping("/cover-letter/{candidateId}")
+    public ResponseEntity<byte[]> getCoverLetter(@PathVariable Long candidateId) {
+        return candidateService.getCoverLetter(candidateId);
+    }
+
+    @GetMapping("/additional-documents/{candidateId}")
+    public ResponseEntity<byte[]> getAdditionalDocuments(@PathVariable Long candidateId) {
+        return candidateService.getAdditionalDocuments(candidateId);
     }
 
     @PutMapping("/status/{candidateId}")
@@ -64,17 +100,6 @@ import java.io.IOException;
         String status = candidateService.getCandidateStatus(candidateId);
 
         return ResponseEntity.ok(status);
-    }
-    @GetMapping("/candidate/resume/{candidateId}")
-    public ResponseEntity<byte[]> downloadResume(@PathVariable Long candidateId) {
-
-        Candidate candidate = candidateService.getCandidateResume(candidateId);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + candidate.getResumeName() + "\"")
-                .contentType(MediaType.parseMediaType(candidate.getResumeType()))
-                .body(candidate.getResume());
     }
     }
 

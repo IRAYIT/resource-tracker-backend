@@ -57,17 +57,23 @@ public class Openings implements Serializable {
     @Column(name = "created_at")
     private Date createdAt;
 
-    @Column(name = "created_by")
-    private String createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_id")
+    private Resource createdBy;
 
     @Column(name = "updated_at")
     private Date updatedAt;
 
-    @Column(name = "updated_by")
-    private String updatedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private Resource updatedBy;
 
     @Column(name = "public_url_key")
     private String publicUrlKey;
+
+    @Lob
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
 
 }

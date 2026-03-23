@@ -1,20 +1,32 @@
 package com.ikonicit.resource.tracker.service;
 
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
-import com.ikonicit.resource.tracker.entity.Candidate;
+import com.ikonicit.resource.tracker.entity.Candidate_Openings;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface CandidateService {
 
-    void applyForJob(String publicUrlKey, String payload, MultipartFile resume);
-
+    public void applyForJob(String publicUrlKey,
+                            String payload,
+                            MultipartFile cv,
+                            MultipartFile coverLetter,
+                            MultipartFile additionalDocuments);
     CandidateDTO getCandidate(Long candidateId);
 
-    CandidateDTO updateCandidate(Long candidateId, CandidateDTO candidateDTO);
+    CandidateDTO updateCandidate(Long candidateId,
+                                 String payload,
+                                 MultipartFile resume,
+                                 MultipartFile coverLetter,
+                                 MultipartFile additionalDocuments);
 
     void updateCandidateStatus(Long candidateId, String applicationStatus);
 
     String getCandidateStatus(Long candidateId);
 
-    Candidate getCandidateResume(Long candidateId);
+    ResponseEntity<byte[]> getCv(Long candidateId);
+
+    ResponseEntity<byte[]> getCoverLetter(Long candidateId);
+
+    ResponseEntity<byte[]> getAdditionalDocuments(Long candidateId);
 }

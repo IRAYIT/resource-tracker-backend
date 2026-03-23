@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "candidate_Openings")
 @Data
-public class Candidate {
+public class Candidate_Openings {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,11 +30,14 @@ public class Candidate {
 
     private LocalDateTime createdAt;
 
-    private String resumeName;
+    @Column(name = "languages_known")
+    private String languagesKnown;
 
-    private String resumeType;
+    @Column(name = "notice_period")
+    private Integer noticePeriod;
 
-    private byte[] resume;
+    @Column(name = "visa_status")
+    private String visaStatus;
 
     @Column(name = "application_status")
     private String applicationStatus;
@@ -42,7 +45,6 @@ public class Candidate {
     @ManyToOne
     @JoinColumn(name = "opening_id")
     private Openings opening;
-
 
     @Column(name = "match_percentage")
     private Double matchPercentage;

@@ -26,7 +26,7 @@ public interface ResourceRepository extends JpaRepository<Resource, Integer> {
 
     Resource findByEmail(String email);
 
-    @Query(value = "select r.email from Resource r where r.status != :status", nativeQuery = true)
+    @Query("SELECT r.email FROM Resource r WHERE r.status != :status AND r.permission.id IN (2, 3)")
     List<String> findEmails(@Param("status") String status);
 
     @Query(value = " Select new com.ikonicit.resource.tracker.dto.ResourceNamesResponseDTO(r.id,r.resourceName)  from Resource r " +
@@ -35,4 +35,7 @@ public interface ResourceRepository extends JpaRepository<Resource, Integer> {
 
     @Query(value = "SELECT * FROM resource r WHERE r.manager_id IS NULL AND r.permission_id = 3", nativeQuery = true)
     List<Resource> findByManagerIdIsNull();
+
+    List<Resource> findAllByPermissionIdAndStatus(Integer permissionId, String status);
+
 }
