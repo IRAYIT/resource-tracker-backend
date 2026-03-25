@@ -94,12 +94,10 @@ import java.io.IOException;
         return ResponseEntity.ok("Status updated successfully");
     }
 
-    @GetMapping("/status/{candidateId}")
-    public ResponseEntity<String> getCandidateStatus(@PathVariable Long candidateId) {
+    @GetMapping("/track")
+    public ResponseEntity<?> getCandidateStatus(@RequestParam String token) {
 
-        String status = candidateService.getCandidateStatus(candidateId);
-
-        return ResponseEntity.ok(status);
+        return ResponseEntity.ok(candidateService.getCandidateStatusByToken(token));
     }
     }
 

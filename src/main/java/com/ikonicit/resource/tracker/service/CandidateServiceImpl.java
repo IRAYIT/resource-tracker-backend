@@ -4,15 +4,14 @@ import com.google.gson.Gson;
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
 import com.ikonicit.resource.tracker.entity.CandidateAttachments;
 import com.ikonicit.resource.tracker.entity.Candidate_Openings;
+import com.ikonicit.resource.tracker.entity.ApplicationTracking;
 import com.ikonicit.resource.tracker.entity.Openings;
 import com.ikonicit.resource.tracker.entity.Resource;
-import com.ikonicit.resource.tracker.repository.CandidateAttachmentsRepository;
-import com.ikonicit.resource.tracker.repository.CandidateRepository;
-import com.ikonicit.resource.tracker.repository.OpeningsRepository;
-import com.ikonicit.resource.tracker.repository.ResourceRepository;
+import com.ikonicit.resource.tracker.exception.BadRequestException;
+import com.ikonicit.resource.tracker.repository.*;
 import com.ikonicit.resource.tracker.utils.SkillDictionary;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +24,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CandidateServiceImpl implements CandidateService {
 
     private final CandidateRepository candidateRepository;
@@ -38,6 +38,8 @@ public class CandidateServiceImpl implements CandidateService {
     private final ResourceRepository resourceRepository;
 
     private final EmailService emailService;
+
+    private final ApplicationTrackingRepository applicationTrackingRepository;
 
     public void applyForJob(String publicUrlKey,
                             String payload,
@@ -196,6 +198,27 @@ public class CandidateServiceImpl implements CandidateService {
             candidateRepository.save(candidate);
 
             // ===============================
+            // Generate Tracking Token
+            // ===============================
+
+            String token = UUID.randomUUID().toString();
+            LocalDateTime expiry = LocalDateTime.now().plusDays(60);
+
+            ApplicationTracking tracking = new ApplicationTracking();
+            tracking.setApplicationId(candidate.getId());
+            tracking.setToken(token);
+            tracking.setExpiryTime(expiry);
+
+            applicationTrackingRepository.save(tracking);
+
+           // ===============================
+           // Build Tracking Link
+            // ===============================
+
+            String trackingLink = "http://localhost:4200/track?token=" + token;
+            // 👉 change to your frontend URL
+
+            // ===============================
             // Save Attachments
             // ===============================
 
@@ -228,26 +251,25 @@ public class CandidateServiceImpl implements CandidateService {
             emailService.sendApplicationConfirmation(
                     candidate.getEmail(),
                     candidate.getFirstName(),
-                    opening.getName()
+                    opening.getName(),
+                    trackingLink
             );
-            List<Resource> hrList = resourceRepository
-                    .findAllByPermissionIdAndStatus(1, "Active");
-            if (hrList.isEmpty()) {
-                throw new RuntimeException("No HR found");
+            Resource hr = opening.getCreatedBy();
+
+            if (hr == null || hr.getEmail() == null) {
+                throw new RuntimeException("HR email not found for this opening");
             }
 
-            List<String> hrEmails = hrList.stream()
-                    .map(Resource::getEmail)
-                    .filter(Objects::nonNull)   // safety
-                    .toList();
+            String hrEmail = hr.getEmail();
 
-            emailService.sendHrNotification(
-                    hrEmails,
+            emailService.sendHrNotificationWithAttachment(
+                    hrEmail,
                     candidate.getFirstName() + " " + candidate.getLastName(),
                     candidate.getEmail(),
                     candidate.getPhone(),
                     opening.getName(),
-                    candidate.getMatchPercentage()
+                    candidate.getMatchPercentage(),
+                    cv   // 🔥 important
             );
         } catch (IOException e) {
             throw new RuntimeException("Resume upload failed");
@@ -381,21 +403,34 @@ public class CandidateServiceImpl implements CandidateService {
 
     @Override
     public void updateCandidateStatus(Long candidateId, String applicationStatus) {
+
         Candidate_Openings candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
+
+        // ✅ Validate status (important)
+        List<String> validStatuses = List.of("APPLIED", "SHORTLISTED", "REJECTED", "HIRED");
+
+        if (!validStatuses.contains(applicationStatus)) {
+            throw new BadRequestException("Invalid status");
+        }
 
         candidate.setApplicationStatus(applicationStatus);
 
         candidateRepository.save(candidate);
-    }
 
-    @Override
-    public String getCandidateStatus(Long candidateId) {
+        // ✅ NEW LOGIC: Send regret email
+        if ("REJECTED".equalsIgnoreCase(applicationStatus)) {
 
-        Candidate_Openings candidate = candidateRepository.findById(candidateId)
-                .orElseThrow(() -> new RuntimeException("Candidate not found"));
-
-        return candidate.getApplicationStatus();
+            try {
+                emailService.sendRejectionEmail(
+                        candidate.getEmail(),
+                        candidate.getFirstName(),
+                        candidate.getOpening().getName()
+                );
+            } catch (Exception e) {
+                log.error("Failed to send rejection email", e);
+            }
+        }
     }
 
     @Override
@@ -448,6 +483,29 @@ public class CandidateServiceImpl implements CandidateService {
                         "inline; filename=" + attachments.getAdditionalDocumentName())
                 .contentType(MediaType.parseMediaType(attachments.getAdditionalDocumentType()))
                 .body(fileData);
+    }
+
+    @Override
+    public Map<String, Object> getCandidateStatusByToken(String token) {
+
+        ApplicationTracking tracking = applicationTrackingRepository
+                .findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid link"));
+
+        if (tracking.getExpiryTime().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Link expired");
+        }
+
+        Candidate_Openings candidate = candidateRepository
+                .findById(tracking.getApplicationId())
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+
+        return Map.of(
+                "name", candidate.getFirstName(),
+                "jobTitle", candidate.getOpening().getName(),
+                "status", candidate.getApplicationStatus(),
+                "matchPercentage", candidate.getMatchPercentage()
+        );
     }
 
     private Map<String,Integer> wordFrequency(String text){

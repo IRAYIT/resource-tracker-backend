@@ -36,6 +36,6 @@ public interface ResourceRepository extends JpaRepository<Resource, Integer> {
     @Query(value = "SELECT * FROM resource r WHERE r.manager_id IS NULL AND r.permission_id = 3", nativeQuery = true)
     List<Resource> findByManagerIdIsNull();
 
-    List<Resource> findAllByPermissionIdAndStatus(Integer permissionId, String status);
+    List<Resource> findAllByPermissionIdInAndStatus(List<Integer> permissionIds, String status);
 
 }

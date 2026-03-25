@@ -22,11 +22,11 @@ public interface CandidateService {
 
     void updateCandidateStatus(Long candidateId, String applicationStatus);
 
-    String getCandidateStatus(Long candidateId);
-
     ResponseEntity<byte[]> getCv(Long candidateId);
 
     ResponseEntity<byte[]> getCoverLetter(Long candidateId);
 
     ResponseEntity<byte[]> getAdditionalDocuments(Long candidateId);
+
+    Object getCandidateStatusByToken(String token);
 }
