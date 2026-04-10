@@ -43,6 +43,8 @@ public class Openings implements Serializable {
 
     private BigDecimal experience;
 
+    private String location;
+
     @Column(name = "employementtype")
     private String employmentType;
 

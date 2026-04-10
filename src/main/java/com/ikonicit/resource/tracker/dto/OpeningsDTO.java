@@ -33,6 +33,8 @@ public class OpeningsDTO implements Serializable {
 
     private BigDecimal experience;
 
+    private String location;
+
     private String employmentType;
 
     private String startDate;

@@ -1,8 +1,12 @@
 package com.ikonicit.resource.tracker.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CandidateDTO {
     private Long id;
 
@@ -45,6 +49,10 @@ public class CandidateDTO {
     private String additionalDocumentType;
 
     private String applicationStatus;
+
+    private String source;
+
+    private String employmentType;
 
 
 

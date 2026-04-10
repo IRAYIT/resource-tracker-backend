@@ -228,6 +228,7 @@ public class OpeningsServiceImpl implements OpeningsService {
         dto.setTechnology(openings.getTechnology());
         dto.setSkill(openings.getSkill());
         dto.setExperience(openings.getExperience());
+        dto.setLocation(openings.getLocation());
         dto.setEmploymentType(openings.getEmploymentType());
         dto.setStartDate(openings.getStartDate());
         dto.setEndDate(openings.getEndDate());
@@ -236,9 +237,10 @@ public class OpeningsServiceImpl implements OpeningsService {
         dto.setUpdatedAt(openings.getUpdatedAt());
         dto.setDescription(openings.getDescription());
 
-        // ✅ SAFE: only ID access (no proxy serialization)
         dto.setCreatedBy(openings.getCreatedBy() != null ? openings.getCreatedBy().getId() : null);
         dto.setUpdatedBy(openings.getUpdatedBy() != null ? openings.getUpdatedBy().getId() : null);
+
+        dto.setPublicUrlKey(openings.getPublicUrlKey());
 
         if (openings.getPublicUrlKey() != null) {
             dto.setPublicUrl("http://localhost:3000/jobs/apply/" + openings.getPublicUrlKey());
@@ -295,7 +297,7 @@ public class OpeningsServiceImpl implements OpeningsService {
 
         } catch (Exception e) {
             log.error("Error sending opening email", e);
-            throw new MailSendFailedException("Failed to send email");
+            // Don't throw — opening is already saved, just log the email failure
         }
     }
 

@@ -21,26 +21,43 @@ public class EmailService {
             String candidateName,
             String jobTitle,
             String trackingLink
-    ){
+    ) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        SimpleMailMessage message = new SimpleMailMessage();
+            helper.setTo(toEmail);
+            helper.setSubject("Application Received - " + jobTitle);
 
-        message.setTo(toEmail);
-        message.setSubject("Application Received - " + jobTitle);
+            String htmlContent =
+                    "<p>Hello " + candidateName + ",</p>" +
 
-        message.setText(
-                "Dear " + candidateName + ",\n\n" +
-                        "Thank you for applying for the position of " + jobTitle + ".\n\n" +
+                            "<p>Thank you so much. You looked through our job opportunities and you took the time to get your information together and send in your application for <b>" + jobTitle + "</b>. " +
+                            "You’ll be pleased to know that we got it — your application has arrived safely at I-Ray IT Solutions.</p>" +
 
-                        "We have successfully received your application.\n\n" +
+                            "<p>Of course, nobody likes to wait. One of the most frustrating things when you set out on a journey to find a new job can be the weeks of wondering. " +
+                            "So, it helps to remember that it takes time to give each application the same careful consideration yours is receiving right now in order to make the best match of experience and skills among the candidates for this position.</p>" +
 
-                        "Track your application here:\n" +
-                        trackingLink + "\n\n" +
+                            "<p>Here’s something to do in the meantime. You can get to know us better by visiting our website:<br>" +
+                            "<a href='https://www.irayitsolutions.com/' style='color:#007BFF;'>I-Ray IT Solutions</a></p>" +
 
-                        "Best Regards,\nHR Team"
-        );
+                            "<p>Rest assured: you’ll hear from us within 30 days. A month. Very soon!</p>" +
 
-        mailSender.send(message);
+                            "<p>" +
+                            "<a href='" + trackingLink + "' " +
+                            "style='background-color:#007BFF; color:#ffffff; padding:10px 16px; text-decoration:none; border-radius:4px; display:inline-block;'>" +
+                            "View your application status</a>" +
+                            "</p>" +
+
+                            "<p>With kind regards until then,<br><br>" +
+                            "I-Ray IT Solutions Recruitment Team</p>" ;
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendHrNotificationWithAttachment(

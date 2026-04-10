@@ -77,6 +77,8 @@ public class CandidateServiceImpl implements CandidateService {
             candidate.setOpening(opening);
             candidate.setCreatedAt(LocalDateTime.now());
             candidate.setApplicationStatus("APPLIED");
+            candidate.setSource(request.getSource());
+            candidate.setEmploymentType(request.getEmploymentType());
 
             // ===============================
             // Resume Parsing
@@ -283,10 +285,12 @@ public class CandidateServiceImpl implements CandidateService {
 
         CandidateDTO dto = new CandidateDTO();
 
+        // ✅ IMPORTANT: Set ID (Fix for null issue in frontend)
+        dto.setId(candidate.getId());
+
         // ===============================
         // Candidate Details
         // ===============================
-
         dto.setFirstName(candidate.getFirstName());
         dto.setLastName(candidate.getLastName());
         dto.setEmail(candidate.getEmail());
@@ -297,6 +301,21 @@ public class CandidateServiceImpl implements CandidateService {
         dto.setNoticePeriod(candidate.getNoticePeriod());
         dto.setVisaStatus(candidate.getVisaStatus());
         dto.setApplicationStatus(candidate.getApplicationStatus());
+        dto.setSource(candidate.getSource());
+        dto.setLocation(candidate.getLocation());
+        dto.setEmploymentType(candidate.getEmploymentType());
+
+        // ===============================
+        // Attachments
+        // ===============================
+        Optional<CandidateAttachments> candidateAttachments =
+                candidateAttachmentsRepository.findByCandidateOpeningsId(candidate.getId());
+
+        candidateAttachments.ifPresent(attachment -> {
+            dto.setCvName(attachment.getCvName());
+            dto.setCoverLetterName(attachment.getCoverLetterName());
+            dto.setAdditionalDocumentName(attachment.getAdditionalDocumentName());
+        });
 
         return dto;
     }
@@ -328,7 +347,9 @@ public class CandidateServiceImpl implements CandidateService {
         candidate.setLanguagesKnown(candidateDTO.getLanguagesKnown());
         candidate.setNoticePeriod(candidateDTO.getNoticePeriod());
         candidate.setVisaStatus(candidateDTO.getVisaStatus());
-
+        candidate.setLocation(candidateDTO.getLocation());
+        candidate.setSource(candidateDTO.getSource());
+        candidate.setEmploymentType(candidate.getEmploymentType());
         candidateRepository.save(candidate);
 
         // ===============================
@@ -445,7 +466,6 @@ public class CandidateServiceImpl implements CandidateService {
                 .contentType(MediaType.parseMediaType(attachments.getCvType()))
                 .body(attachments.getCv());
     }
-
     @Override
     public ResponseEntity<byte[]> getCoverLetter(Long candidateId) {
 
@@ -461,7 +481,7 @@ public class CandidateServiceImpl implements CandidateService {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=" + attachments.getCoverLetterName())
+                        "inline; filename=\"" + attachments.getCoverLetterName() + "\"")
                 .contentType(MediaType.parseMediaType(attachments.getCoverLetterType()))
                 .body(fileData);
     }
@@ -506,6 +526,31 @@ public class CandidateServiceImpl implements CandidateService {
                 "status", candidate.getApplicationStatus(),
                 "matchPercentage", candidate.getMatchPercentage()
         );
+    }
+
+    @Override
+    public List<CandidateDTO> getAllCandidates() {
+        return candidateRepository.getAllCandidatesWithAttachments();
+    }
+
+    public void deleteCandidate(Long candidateId) {
+        Optional<Candidate_Openings> candidateOpenings = candidateRepository.findById(candidateId);
+
+        if (candidateOpenings.isPresent()) {
+            // Safely unwrap the Optional before calling methods on it
+            Optional<CandidateAttachments> attachments =
+                    candidateAttachmentsRepository.findByCandidateOpeningsId(candidateId);
+
+            // Check if attachment exists before deleting
+            if (attachments.isPresent()) {
+                candidateAttachmentsRepository.deleteById(
+                        attachments.get().getCandidateAttachmentId()
+                );
+            }
+
+            candidateRepository.deleteById(candidateId);
+            // No return statement needed in void method
+        }
     }
 
     private Map<String,Integer> wordFrequency(String text){

@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RestController
     @RequestMapping("/api/public/apply")
     public class CandidateController {
@@ -98,6 +100,17 @@ import java.io.IOException;
     public ResponseEntity<?> getCandidateStatus(@RequestParam String token) {
 
         return ResponseEntity.ok(candidateService.getCandidateStatusByToken(token));
+    }
+
+    @GetMapping("/getAllCandidate")
+    public ResponseEntity<List<CandidateDTO>> getAllCandidates() {
+        List<CandidateDTO> candidates = candidateService.getAllCandidates();
+        return ResponseEntity.ok(candidates);
+    }
+
+    @DeleteMapping("/delete/{candidateId}")
+    public void deleteCandidate(@PathVariable Long candidateId) {
+        candidateService.deleteCandidate(candidateId);
     }
     }
 

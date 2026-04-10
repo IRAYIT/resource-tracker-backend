@@ -113,6 +113,8 @@ public class Resource implements Serializable {
     @Column(name="resourceType")
     private String resourceType;
 
+    private String candidateSource;
+
 
 
 }

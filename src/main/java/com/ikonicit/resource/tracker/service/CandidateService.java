@@ -5,6 +5,8 @@ import com.ikonicit.resource.tracker.entity.Candidate_Openings;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface CandidateService {
 
     public void applyForJob(String publicUrlKey,
@@ -29,4 +31,8 @@ public interface CandidateService {
     ResponseEntity<byte[]> getAdditionalDocuments(Long candidateId);
 
     Object getCandidateStatusByToken(String token);
+
+    List<CandidateDTO> getAllCandidates();
+
+    void deleteCandidate(Long candidateId);
 }

@@ -51,4 +51,13 @@ public class Candidate_Openings {
 
     @Column(name = "matched_skills")
     private String matchedSkills;
+
+    private String employmentType;
+
+    private String source;
+
+    @OneToOne(mappedBy = "candidateOpenings", fetch = FetchType.LAZY)
+    private CandidateAttachments attachments;
+
+
 }
