@@ -23,4 +23,5 @@ public interface OpeningsService {
 
     List<OpeningsDTO> createOpenings(List<OpeningsDTO> openingsDTO);
 
+    OpeningsDTO getOpeningByPublicUrlKey(String publicUrlKey);
 }

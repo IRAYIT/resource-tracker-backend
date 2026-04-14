@@ -143,4 +143,18 @@ public class OpeningsController {
         return ResponseEntity.ok(openingsService.deleteOpening(id));
     }
 
+    @Operation(summary = "Get the Opening details by public url key")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+                    description = "opening for the given public url key",
+                    content = {@Content(mediaType = "application/json")}),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+                    description = "Page not found",
+                    content = @Content)
+    })
+    @GetMapping(path = "/public/{publicUrlKey}")
+    public ResponseEntity<OpeningsDTO> getOpeningByPublicUrlKey(@PathVariable(value = "publicUrlKey") final String publicUrlKey) {
+        log.info("getOpeningByPublicUrlKey");
+        return ResponseEntity.ok(openingsService.getOpeningByPublicUrlKey(publicUrlKey));
+}
 }

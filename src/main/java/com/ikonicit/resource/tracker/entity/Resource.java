@@ -84,7 +84,7 @@ public class Resource implements Serializable {
     @JsonManagedReference
     private List<Project> projects;
 
-    @OneToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER)
     //@JoinColumn(name = "permission_id")
     @JoinColumn(name = "permission_id",unique = false)
     private Permission permission;
@@ -112,6 +112,8 @@ public class Resource implements Serializable {
 
     @Column(name="resourceType")
     private String resourceType;
+
+    private String candidateSource;
 
 
 

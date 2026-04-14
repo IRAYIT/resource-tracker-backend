@@ -33,6 +33,8 @@ public class OpeningsDTO implements Serializable {
 
     private BigDecimal experience;
 
+    private String location;
+
     private String employmentType;
 
     private String startDate;
@@ -43,9 +45,15 @@ public class OpeningsDTO implements Serializable {
 
     private Date createdAt;
 
-    private String createdBy;
+    private Integer createdBy;
 
     private Date updatedAt;
 
-    private String updatedBy;
+    private Integer updatedBy;
+
+    private String publicUrlKey;
+
+    private String publicUrl;
+
+    private String description;
 }

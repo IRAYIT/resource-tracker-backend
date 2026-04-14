@@ -48,5 +48,6 @@ public class ResourceDTO implements Serializable {
     private Boolean client;
     private String resourceType;
     private List<Integer> assignedResourceIds;
+    private String candidateSource;
 
 }
