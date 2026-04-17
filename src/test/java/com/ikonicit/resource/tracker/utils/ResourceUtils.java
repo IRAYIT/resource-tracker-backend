@@ -16,11 +16,11 @@ public class ResourceUtils {
     public static List<ResourceDTO> mockResources() {
         List<ResourceDTO> resources = new ArrayList<>();
         ResourceDTO resourceOne = new ResourceDTO(1, 51, null, "Neymar", "Neymar", "JR", "jr@gmail.com", "xyz", "9874563210", "java", "fullTime", new Date(), new Date(), "bench",
-                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"a",null);
+                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"a",null,null);
         ResourceDTO resourceTwo = new ResourceDTO(2, 51, null, "crRonaldo", "cr", "ronaldo", "cr@gmail.com", "xyz", "9874563210", "java", "fullTime", new Date(), new Date(), "bench",
-                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",false,null,null);
+                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",false,null,null,null);
         ResourceDTO resourceThree = new ResourceDTO(3, 51, null, "Lmessi", "l", "Messi", "messi@gmail.com", "xyz", "9874563210", "java", "fullTime", new Date(), new Date(), "bench",
-                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",false,null,null);
+                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",false,null,null,null);
         resources.add(resourceOne);
         resources.add(resourceTwo);
         resources.add(resourceThree);
@@ -72,11 +72,11 @@ public class ResourceUtils {
     public static List<ResourceDTO> mockmanagers() {
         List<ResourceDTO> resources = new ArrayList<>();
         ResourceDTO resourceOne = new ResourceDTO(1, null, 2, "Neymar", "Neymar", "JR", "jr@gmail.com", "xyz", "9874563210", "java", "fullTime", new Date(), new Date(), "bench",
-                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"a",null);
+                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"a",null,null);
         ResourceDTO resourceTwo = new ResourceDTO(2, null, 2, "crRonaldo", "cr", "ronaldo", "cr@gmail.com", "xyz", "9874563210", "java", "fullTime", new Date(), new Date(), "bench",
-                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"c",null);
+                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"c",null,null);
         ResourceDTO resourceThree = new ResourceDTO(3, null, 2, "Lmessi", "l", "Messi", "messi@gmail.com", "xyz", "9874563210", "java", "fullTime", new Date(), new Date(), "bench",
-                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"b",null);
+                "spring", BigDecimal.valueOf(2.3), null, null, null, null, new Date(), "ram", new Date(), "ram",true,"b",null,null);
         resources.add(resourceOne);
         resources.add(resourceTwo);
         resources.add(resourceThree);

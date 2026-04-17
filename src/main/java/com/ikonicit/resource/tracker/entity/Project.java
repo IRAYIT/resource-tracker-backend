@@ -34,7 +34,7 @@ public class Project implements Serializable {
     private String name;
     @Column(name = "client_name")
     private String clientName;
-    @Lob
+    @Column(columnDefinition = "bytea")
     private byte[] attachment;
     @Column(name = "start_date")
     private Date startDate;
