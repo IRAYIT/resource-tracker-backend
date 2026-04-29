@@ -68,7 +68,7 @@ public class CandidateServiceImpl implements CandidateService {
             candidate.setPhone(request.getPhone());
             candidate.setExperience(request.getExperience());
             candidate.setExpectedSalary(request.getExpectedSalary());
-
+            candidate.setExpectedSalaryCurrency(request.getExpectedSalaryCurrency());
             candidate.setLocation(request.getLocation());
             candidate.setNoticePeriod(request.getNoticePeriod());
             candidate.setLanguagesKnown(request.getLanguagesKnown());
@@ -217,7 +217,7 @@ public class CandidateServiceImpl implements CandidateService {
            // Build Tracking Link
             // ===============================
 
-            String trackingLink = "http://localhost:4200/track?token=" + token;
+            String trackingLink = "http://localhost:3000/track?token=" + token;
             // 👉 change to your frontend URL
 
             // ===============================
@@ -297,6 +297,7 @@ public class CandidateServiceImpl implements CandidateService {
         dto.setPhone(candidate.getPhone());
         dto.setExperience(candidate.getExperience());
         dto.setExpectedSalary(candidate.getExpectedSalary());
+        dto.setExpectedSalaryCurrency(candidate.getExpectedSalaryCurrency());
         dto.setLanguagesKnown(candidate.getLanguagesKnown());
         dto.setNoticePeriod(candidate.getNoticePeriod());
         dto.setVisaStatus(candidate.getVisaStatus());
@@ -343,6 +344,7 @@ public class CandidateServiceImpl implements CandidateService {
         candidate.setPhone(candidateDTO.getPhone());
         candidate.setExperience(candidateDTO.getExperience());
         candidate.setExpectedSalary(candidateDTO.getExpectedSalary());
+        candidate.setExpectedSalaryCurrency(candidateDTO.getExpectedSalaryCurrency());
         candidate.setLocation(candidateDTO.getLocation());
         candidate.setLanguagesKnown(candidateDTO.getLanguagesKnown());
         candidate.setNoticePeriod(candidateDTO.getNoticePeriod());
@@ -413,6 +415,7 @@ public class CandidateServiceImpl implements CandidateService {
         response.setPhone(candidate.getPhone());
         response.setExperience(candidate.getExperience());
         response.setExpectedSalary(candidate.getExpectedSalary());
+        response.setExpectedSalaryCurrency(candidate.getExpectedSalaryCurrency());
         response.setLocation(candidate.getLocation());
         response.setLanguagesKnown(candidate.getLanguagesKnown());
         response.setNoticePeriod(candidate.getNoticePeriod());

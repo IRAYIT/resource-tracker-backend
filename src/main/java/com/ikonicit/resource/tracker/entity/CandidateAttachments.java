@@ -14,14 +14,13 @@ public class CandidateAttachments {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long candidateAttachmentId;
 
-    @Lob
-    @Column(name="CV")
+    @Column(name = "CV", columnDefinition = "bytea")
     private byte[] cv;
 
-    @Lob
+    @Column(columnDefinition = "bytea")
     private byte[] coverLetter;
 
-    @Lob
+    @Column(columnDefinition = "bytea")
     private byte[] additionalDocuments;
 
     private String cvName;

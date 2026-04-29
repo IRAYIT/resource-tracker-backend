@@ -72,8 +72,7 @@ public class Openings implements Serializable {
 
     @Column(name = "public_url_key")
     private String publicUrlKey;
-
-    @Lob
+    
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
