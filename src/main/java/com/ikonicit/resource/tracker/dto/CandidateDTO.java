@@ -20,7 +20,9 @@ public class CandidateDTO {
 
     private Integer experience;
 
-    private Double expectedSalary;
+    private String expectedSalaryCurrency;
+
+    private String expectedSalary;
 
     private String location;
 
