@@ -1,6 +1,7 @@
 package com.ikonicit.resource.tracker.controller;
 
 import com.ikonicit.resource.tracker.dto.OpeningsDTO;
+import com.ikonicit.resource.tracker.dto.OpeningsResponseDTO;
 import com.ikonicit.resource.tracker.service.OpeningsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -41,7 +42,7 @@ public class OpeningsController {
                     content = @Content)
     })
     @PostMapping
-    public ResponseEntity<OpeningsDTO> saveOpening(@RequestBody final OpeningsDTO openingsDTO) {
+    public ResponseEntity<OpeningsResponseDTO> saveOpening(@RequestBody final OpeningsDTO openingsDTO) {
         log.info("Save Opening Request");
         return ResponseEntity.ok(openingsService.create(openingsDTO));
     }
@@ -61,7 +62,7 @@ public class OpeningsController {
                     content = @Content)
     })
     @PutMapping
-    public ResponseEntity<OpeningsDTO> updateOpening(@RequestBody final OpeningsDTO openingsDTO) {
+    public ResponseEntity<OpeningsResponseDTO> updateOpening(@RequestBody final OpeningsDTO openingsDTO) {
         log.info("Update Opening Request");
         return ResponseEntity.ok(openingsService.update(openingsDTO));
     }
@@ -81,7 +82,7 @@ public class OpeningsController {
                     content = @Content)
     })
     @PostMapping("/list")
-    public ResponseEntity<List<OpeningsDTO>> saveOpenings(@RequestBody final List<OpeningsDTO> openingsDTO) {
+    public ResponseEntity<List<OpeningsResponseDTO>> saveOpenings(@RequestBody final List<OpeningsDTO> openingsDTO) {
         log.info("Save Opening Request");
         return ResponseEntity.ok(openingsService.createOpenings(openingsDTO));
     }
@@ -100,7 +101,7 @@ public class OpeningsController {
                     content = @Content)
     })
     @GetMapping
-    public ResponseEntity<List<OpeningsDTO>> getOpenings() {
+    public ResponseEntity<List<OpeningsResponseDTO>> getOpenings() {
         log.info("getOpenings");
         return ResponseEntity.ok(openingsService.getOpenings());
     }
@@ -119,7 +120,7 @@ public class OpeningsController {
                     content = @Content)
     })
     @GetMapping(path = "/{id}")
-    public ResponseEntity<OpeningsDTO> getOpening(@PathVariable(value = "id") final Integer id) {
+    public ResponseEntity<OpeningsResponseDTO> getOpening(@PathVariable(value = "id") final Integer id) {
         log.info("getOpening");
         return ResponseEntity.ok(openingsService.getOpening(id));
     }
@@ -153,7 +154,7 @@ public class OpeningsController {
                     content = @Content)
     })
     @GetMapping(path = "/public/{publicUrlKey}")
-    public ResponseEntity<OpeningsDTO> getOpeningByPublicUrlKey(@PathVariable(value = "publicUrlKey") final String publicUrlKey) {
+    public ResponseEntity<OpeningsResponseDTO> getOpeningByPublicUrlKey(@PathVariable(value = "publicUrlKey") final String publicUrlKey) {
         log.info("getOpeningByPublicUrlKey");
         return ResponseEntity.ok(openingsService.getOpeningByPublicUrlKey(publicUrlKey));
 }

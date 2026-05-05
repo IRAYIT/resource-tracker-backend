@@ -35,4 +35,6 @@ public interface CandidateService {
     List<CandidateDTO> getAllCandidates();
 
     void deleteCandidate(Long candidateId);
+
+    List<CandidateDTO> getCandidatesByOpening(Integer openingId);
 }

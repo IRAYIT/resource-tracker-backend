@@ -20,9 +20,26 @@ public class EmailService {
             String toEmail,
             String candidateName,
             String jobTitle,
-            String trackingLink
+            String trackingLink,
+            String location          // ← new parameter
     ) {
         try {
+            // ===============================
+            // Resolve Company Name by Location
+            // ===============================
+            String companyName;
+
+            if ("India".equalsIgnoreCase(location)) {
+                companyName = "I-Ray IT Solutions";
+            } else if ("Sweden".equalsIgnoreCase(location)) {
+                companyName = "I-Ray IT Solutions AB";
+            } else {
+                companyName = "I-Ray IT Solutions";  // default fallback
+            }
+
+            // ===============================
+            // Build Email
+            // ===============================
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -32,27 +49,30 @@ public class EmailService {
             String htmlContent =
                     "<p>Hello " + candidateName + ",</p>" +
 
-                            "<p>Thank you so much. You looked through our job opportunities and you took the time to get your information together and send in your application for <b>" + jobTitle + "</b>. " +
-                            "You’ll be pleased to know that we got it — your application has arrived safely at I-Ray IT Solutions.</p>" +
+                            "<p>Thank you for applying to the <strong>" + jobTitle + "</strong> position at " +
+                            "<strong>" + companyName + "</strong>. We've successfully received your application " +
+                            "and appreciate the time you took to apply.</p>" +
 
-                            "<p>Of course, nobody likes to wait. One of the most frustrating things when you set out on a journey to find a new job can be the weeks of wondering. " +
-                            "So, it helps to remember that it takes time to give each application the same careful consideration yours is receiving right now in order to make the best match of experience and skills among the candidates for this position.</p>" +
+                            "<p>Our recruitment team is currently reviewing your profile, and we aim to get back " +
+                            "to you with an update as soon as possible.</p>" +
 
-                            "<p>Here’s something to do in the meantime. You can get to know us better by visiting our website:<br>" +
-                            "<a href='https://www.irayitsolutions.com/' style='color:#007BFF;'>I-Ray IT Solutions</a></p>" +
+                            "<p>In the meantime, feel free to visit our website to learn more about our work and culture:<br>" +
+                            "<a href='https://www.irayitsolutions.com/' style='color:#007BFF;'>" + companyName + "</a></p>" +
 
-                            "<p>Rest assured: you’ll hear from us within 30 days. A month. Very soon!</p>" +
+                            "<p>Thank you once again for your interest in <strong>" + companyName + "</strong>. " +
+                            "We look forward to connecting with you.</p>" +
 
                             "<p>" +
                             "<a href='" + trackingLink + "' " +
-                            "style='background-color:#007BFF; color:#ffffff; padding:10px 16px; text-decoration:none; border-radius:4px; display:inline-block;'>" +
+                            "style='background-color:#007BFF; color:#ffffff; padding:10px 16px; " +
+                            "text-decoration:none; border-radius:4px; display:inline-block;'>" +
                             "View your application status</a>" +
                             "</p>" +
 
-                            "<p>With kind regards until then,<br><br>" +
-                            "I-Ray IT Solutions Recruitment Team</p>" ;
-            helper.setText(htmlContent, true);
+                            "<p>Kind regards,<br><br>" +
+                            companyName + " Recruitment Team</p>";
 
+            helper.setText(htmlContent, true);
             mailSender.send(message);
 
         } catch (Exception e) {
@@ -115,33 +135,48 @@ public class EmailService {
         );
         mailSender.send(message);
     }
-
-    public void sendRejectionEmail(String email, String name, String jobTitle) {
+    public void sendRejectionEmail(String email, String name, String jobTitle, String location) {
 
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
+            String companyName;
 
-            message.setTo(email);
-            message.setSubject("Update on your application for " + jobTitle);
+            if ("India".equalsIgnoreCase(location)) {
+                companyName = "I-Ray IT Solutions";
+            } else if ("Sweden".equalsIgnoreCase(location)) {
+                companyName = "I-Ray IT Solutions AB";
+            } else {
+                companyName = "I-Ray IT Solutions";  // default fallback
+            }
 
-            message.setText(
-                    "Dear " + name + ",\n\n" +
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-                            "Thank you for your patience while we reviewed applications for the " + jobTitle + " role.\n\n" +
+            helper.setTo(email);
+            helper.setSubject("Update on your application for " + jobTitle);
 
-                            "We truly appreciate your interest in joining our organization. We know that applying takes time and effort, and we are grateful for the opportunity to review your profile.\n\n" +
+            String htmlContent =
+                    "<p>Dear " + name + ",</p>" +
 
-                            "After careful consideration, we regret to inform you that we will be moving forward with other candidates for this position.\n\n" +
+                            "<p>Thank you for your patience while we reviewed applications for the " +
+                            "<strong>" + jobTitle + "</strong> role.</p>" +
 
-                            "However, we encourage you to keep an eye on future opportunities with us that match your skills and experience.\n\n" +
+                            "<p>We truly appreciate your interest in joining <strong>" + companyName + "</strong>. " +
+                            "We know that applying takes time and effort, and we are grateful for the " +
+                            "opportunity to review your profile.</p>" +
 
-                            "We sincerely wish you all the best in your job search and future endeavors.\n\n" +
+                            "<p>After careful consideration, we regret to inform you that we will be moving " +
+                            "forward with other candidates for this position.</p>" +
 
-                            "Warm regards,\n" +
-                            "HR Team\n" +
-                            "I-Ray IT Solutions"
-            );
+                            "<p>However, we encourage you to keep an eye on future opportunities with us " +
+                            "that match your skills and experience.</p>" +
 
+                            "<p>We sincerely wish you all the best in your job search and future endeavors.</p>" +
+
+                            "<p>Warm regards,<br><br>" +
+                            "HR Team<br>" +
+                            "<strong>" + companyName + "</strong></p>";
+
+            helper.setText(htmlContent, true);
             mailSender.send(message);
 
         } catch (Exception e) {

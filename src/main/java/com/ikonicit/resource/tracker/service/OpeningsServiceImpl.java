@@ -2,12 +2,14 @@ package com.ikonicit.resource.tracker.service;
 
 import com.google.gson.Gson;
 import com.ikonicit.resource.tracker.dto.OpeningsDTO;
+import com.ikonicit.resource.tracker.dto.OpeningsResponseDTO;
 import com.ikonicit.resource.tracker.entity.Openings;
 import com.ikonicit.resource.tracker.entity.Resource;
 import com.ikonicit.resource.tracker.exception.BadRequestException;
 import com.ikonicit.resource.tracker.exception.MailSendFailedException;
 import com.ikonicit.resource.tracker.exception.ResourceNotFoundException;
 import com.ikonicit.resource.tracker.predicates.Predicates;
+import com.ikonicit.resource.tracker.repository.CandidateRepository;
 import com.ikonicit.resource.tracker.repository.OpeningsRepository;
 import com.ikonicit.resource.tracker.repository.ResourceRepository;
 import com.ikonicit.resource.tracker.utils.Constants;
@@ -41,6 +43,9 @@ public class OpeningsServiceImpl implements OpeningsService {
     @Autowired
     private JavaMailSender javaMailSender;
 
+    @Autowired
+    private CandidateRepository candidateRepository;
+
     Predicate<Object> isNotNull = Predicates.isNotNull;
 
     @Value("${spring.openingsEmailEnabled}")
@@ -52,7 +57,7 @@ public class OpeningsServiceImpl implements OpeningsService {
     }
 
     @Override
-    public OpeningsDTO create(OpeningsDTO openingsDTO) {
+    public OpeningsResponseDTO create(OpeningsDTO openingsDTO) {
 
         Openings openings = buildOpenings(openingsDTO);
 
@@ -79,7 +84,7 @@ public class OpeningsServiceImpl implements OpeningsService {
     }
 
     @Override
-    public OpeningsDTO getOpening(Integer id) {
+    public OpeningsResponseDTO getOpening(Integer id) {
         Openings opening = null;
         Optional<Openings> openingsOptional = openingsRepository.findById(id);
         if (isNotNull.test(openingsOptional) && openingsOptional.isPresent()) {
@@ -91,7 +96,7 @@ public class OpeningsServiceImpl implements OpeningsService {
     }
 
     @Override
-    public OpeningsDTO update(OpeningsDTO openingsDTO) {
+    public OpeningsResponseDTO update(OpeningsDTO openingsDTO) {
 
         if (openingsDTO.getId() == null || openingsDTO.getId() == 0) {
             throw new BadRequestException("Id is mandatory for update Opening");
@@ -113,7 +118,7 @@ public class OpeningsServiceImpl implements OpeningsService {
     }
 
     @Override
-    public List<OpeningsDTO> getOpenings() {
+    public List<OpeningsResponseDTO> getOpenings() {
         return buildOpeningsDTOList(openingsRepository.findByStatusOrderByIdDesc(Constants.ACTIVE));
     }
 
@@ -131,7 +136,7 @@ public class OpeningsServiceImpl implements OpeningsService {
     }
 
     @Override
-    public List<OpeningsDTO> createOpenings(List<OpeningsDTO> openingsDTO) {
+    public List<OpeningsResponseDTO> createOpenings(List<OpeningsDTO> openingsDTO) {
 
         List<Openings> openings = new ArrayList<>();
         openingsDTO.forEach(dto -> {
@@ -153,7 +158,7 @@ public class OpeningsServiceImpl implements OpeningsService {
     }
 
     @Override
-    public OpeningsDTO getOpeningByPublicUrlKey(String publicUrlKey) {
+    public OpeningsResponseDTO getOpeningByPublicUrlKey(String publicUrlKey) {
 
         // fetch Optional once
         Openings openings = openingsRepository.findByPublicUrlKey(publicUrlKey)
@@ -187,14 +192,13 @@ public class OpeningsServiceImpl implements OpeningsService {
 //        }
 //    }
 
-    private List<OpeningsDTO> buildOpeningsDTOList(List<Openings> openings) {
-
-        List<OpeningsDTO> openingsDTOS = new ArrayList<>();
-        openings.forEach(opening -> {
-            openingsDTOS.add(buildOpeningsDTO(opening));
-        });
-        return openingsDTOS;
-    }
+private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) {
+    List<OpeningsResponseDTO> openingsDTOS = new ArrayList<>();
+    openings.forEach(opening -> {
+        openingsDTOS.add(buildOpeningsDTO(opening));
+    });
+    return openingsDTOS;
+}
 
     private Openings buildOpenings(OpeningsDTO dto) {
         dto.setStatus("ACTIVE");
@@ -215,9 +219,9 @@ public class OpeningsServiceImpl implements OpeningsService {
         return openings;
     }
 
-    private OpeningsDTO buildOpeningsDTO(Openings openings) {
+    private OpeningsResponseDTO buildOpeningsDTO(Openings openings) {
 
-        OpeningsDTO dto = new OpeningsDTO();
+        OpeningsResponseDTO dto = new OpeningsResponseDTO();
 
         dto.setId(openings.getId());
         dto.setName(openings.getName());
@@ -236,15 +240,34 @@ public class OpeningsServiceImpl implements OpeningsService {
         dto.setCreatedAt(openings.getCreatedAt());
         dto.setUpdatedAt(openings.getUpdatedAt());
         dto.setDescription(openings.getDescription());
-
-        dto.setCreatedBy(openings.getCreatedBy() != null ? openings.getCreatedBy().getId() : null);
-        dto.setUpdatedBy(openings.getUpdatedBy() != null ? openings.getUpdatedBy().getId() : null);
-
         dto.setPublicUrlKey(openings.getPublicUrlKey());
 
         if (openings.getPublicUrlKey() != null) {
             dto.setPublicUrl("http://localhost:3000/jobs/apply/" + openings.getPublicUrlKey());
         }
+
+        // ================================
+        // Resolve createdBy
+        // ================================
+        if (openings.getCreatedBy() != null) {
+            dto.setCreatedBy(openings.getCreatedBy().getId());
+            dto.setCreatedByName(
+                    openings.getCreatedBy().getFirstName() + " " +
+                            openings.getCreatedBy().getLastName()
+            );
+        } else {
+            dto.setCreatedBy(null);
+            dto.setCreatedByName("N/A");
+        }
+
+        if (openings.getUpdatedBy() != null) {
+            dto.setUpdatedBy(openings.getUpdatedBy().getId());
+        } else {
+            dto.setUpdatedBy(null);
+        }
+
+        Long count = candidateRepository.countByOpeningId(openings.getId());
+        dto.setCandidateCount(count != null ? count : 0L);
 
         return dto;
     }
@@ -261,7 +284,7 @@ public class OpeningsServiceImpl implements OpeningsService {
 
             // 🎯 Fetch HR + Manager + Employee in ONE query
             List<Resource> users = resourceRepository
-                    .findAllByPermissionIdInAndStatus(List.of(1, 2, 3), "Active");
+                    .findAllByPermissionIdInAndStatus(List.of(1, 2, 3), "ACTIVE");
 
             // 🎯 Filter emails (exclude creator)
             List<String> emails = users.stream()
@@ -294,6 +317,7 @@ public class OpeningsServiceImpl implements OpeningsService {
             );
 
             javaMailSender.send(message);
+            log.info("Email sent successfully");
 
         } catch (Exception e) {
             log.error("Error sending opening email", e);

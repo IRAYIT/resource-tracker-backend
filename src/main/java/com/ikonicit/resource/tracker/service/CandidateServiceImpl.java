@@ -254,7 +254,8 @@ public class CandidateServiceImpl implements CandidateService {
                     candidate.getEmail(),
                     candidate.getFirstName(),
                     opening.getName(),
-                    trackingLink
+                    trackingLink,
+                    opening.getLocation()
             );
             Resource hr = opening.getCreatedBy();
 
@@ -449,7 +450,8 @@ public class CandidateServiceImpl implements CandidateService {
                 emailService.sendRejectionEmail(
                         candidate.getEmail(),
                         candidate.getFirstName(),
-                        candidate.getOpening().getName()
+                        candidate.getOpening().getName(),
+                        candidate.getOpening().getLocation()
                 );
             } catch (Exception e) {
                 log.error("Failed to send rejection email", e);
@@ -554,6 +556,31 @@ public class CandidateServiceImpl implements CandidateService {
             candidateRepository.deleteById(candidateId);
             // No return statement needed in void method
         }
+    }
+
+    @Override
+    public List<CandidateDTO> getCandidatesByOpening(Integer openingId) {
+        List<Candidate_Openings> candidates = candidateRepository.findByOpening_Id(openingId);
+        return candidates.stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    private CandidateDTO mapToDTO(Candidate_Openings c) {
+        CandidateDTO dto = new CandidateDTO();
+        dto.setId(c.getId());
+        dto.setFirstName(c.getFirstName());
+        dto.setLastName(c.getLastName());
+        dto.setEmail(c.getEmail());
+        dto.setPhone(c.getPhone());
+        dto.setExperience(c.getExperience());
+        dto.setExpectedSalary(c.getExpectedSalary());
+        dto.setExpectedSalaryCurrency(c.getExpectedSalaryCurrency());
+        dto.setLocation(c.getLocation());
+        dto.setApplicationStatus(c.getApplicationStatus());
+        dto.setSource(c.getSource());
+        dto.setEmploymentType(c.getEmploymentType());
+        return dto;
     }
 
     private Map<String,Integer> wordFrequency(String text){
