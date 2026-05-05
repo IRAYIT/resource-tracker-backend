@@ -20,6 +20,10 @@ public class CandidateDTO {
 
     private Integer experience;
 
+    private String currentSalaryCurrency;
+
+    private String currentSalary;
+
     private String expectedSalaryCurrency;
 
     private String expectedSalary;

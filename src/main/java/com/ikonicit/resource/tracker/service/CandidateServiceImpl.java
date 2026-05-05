@@ -67,6 +67,8 @@ public class CandidateServiceImpl implements CandidateService {
             candidate.setEmail(request.getEmail());
             candidate.setPhone(request.getPhone());
             candidate.setExperience(request.getExperience());
+            candidate.setCurrentSalary(request.getCurrentSalary());
+            candidate.setCurrentSalaryCurrency(request.getCurrentSalaryCurrency());
             candidate.setExpectedSalary(request.getExpectedSalary());
             candidate.setExpectedSalaryCurrency(request.getExpectedSalaryCurrency());
             candidate.setLocation(request.getLocation());
