@@ -1,0 +1,61 @@
+package com.ikonicit.resource.tracker.dto;
+
+import lombok.Data;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.Date;
+@Data
+@Component
+public class OpeningsResponseDTO {
+
+    private static final long serialVersionUID = 1L;
+
+    private Integer id;
+
+    private String name;
+
+    private String hours;
+
+    private String shiftTimings;
+
+    private String payment;
+
+    private String paymentType;
+
+    private String technology;
+
+    private String skill;
+
+    private BigDecimal experience;
+
+    private String location;
+
+    private String employmentType;
+
+    private String startDate;
+
+    private String endDate;
+
+    private String status;
+
+    private Date createdAt;
+
+    private Integer createdBy;
+
+    private Date updatedAt;
+
+    private Integer updatedBy;
+
+    private String publicUrlKey;
+
+    private String publicUrl;
+
+    private String description;
+
+    private String createdByName;
+
+    private Long candidateCount;
+
+}

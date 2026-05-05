@@ -112,5 +112,11 @@ import java.util.List;
     public void deleteCandidate(@PathVariable Long candidateId) {
         candidateService.deleteCandidate(candidateId);
     }
+
+    @GetMapping("/byOpening/{openingId}")
+    public ResponseEntity<List<CandidateDTO>> getCandidatesByOpening(
+            @PathVariable Integer openingId) {
+        return ResponseEntity.ok(candidateService.getCandidatesByOpening(openingId));
+    }
     }
 

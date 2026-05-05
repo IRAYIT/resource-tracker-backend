@@ -1,6 +1,7 @@
 package com.ikonicit.resource.tracker.service;
 
 import com.ikonicit.resource.tracker.dto.OpeningsDTO;
+import com.ikonicit.resource.tracker.dto.OpeningsResponseDTO;
 
 import java.util.List;
 
@@ -11,17 +12,17 @@ import java.util.List;
 public interface OpeningsService {
 
 
-    OpeningsDTO create(OpeningsDTO openingsDTO);
+    OpeningsResponseDTO create(OpeningsDTO openingsDTO);
 
-    OpeningsDTO getOpening(Integer id);
+    OpeningsResponseDTO getOpening(Integer id);
 
-    OpeningsDTO update(OpeningsDTO openingsDTO);
+    OpeningsResponseDTO update(OpeningsDTO openingsDTO);
 
-    List<OpeningsDTO> getOpenings();
+    List<OpeningsResponseDTO> getOpenings();
 
     String deleteOpening(Integer id);
 
-    List<OpeningsDTO> createOpenings(List<OpeningsDTO> openingsDTO);
+    List<OpeningsResponseDTO> createOpenings(List<OpeningsDTO> openingsDTO);
 
-    OpeningsDTO getOpeningByPublicUrlKey(String publicUrlKey);
+    OpeningsResponseDTO getOpeningByPublicUrlKey(String publicUrlKey);
 }

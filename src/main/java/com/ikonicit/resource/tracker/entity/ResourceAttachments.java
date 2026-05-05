@@ -31,7 +31,7 @@ public class ResourceAttachments implements Serializable {
    private String fileName;
    @Column(name = "content_type")
    private String contentType;
-   @Lob
+   @Column(columnDefinition = "bytea")
    private byte[] attachment;
    @Column(name = "created_at")
    private Date createdAt;
@@ -41,9 +41,5 @@ public class ResourceAttachments implements Serializable {
    private Date updatedAt;
    @Column(name = "updated_by")
    private String updatedBy;
-
-
-
-
 
 }

@@ -4,6 +4,7 @@ import com.ikonicit.resource.tracker.dto.CandidateDTO;
 import com.ikonicit.resource.tracker.entity.Candidate_Openings;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,7 +16,11 @@ public interface CandidateRepository extends JpaRepository<Candidate_Openings, L
 
     @Query("SELECT new com.ikonicit.resource.tracker.dto.CandidateDTO(" +
             "c.id, c.firstName, c.lastName, c.email, c.phone, c.experience, " +
-            "c.expectedSalary, c.location, c.languagesKnown, c.noticePeriod, " +
+            "c.expectedSalaryCurrency, " +
+            "c.expectedSalary," +
+           "c.currentSalaryCurrency, " +
+            "c.currentSalary," +
+            " c.location, c.languagesKnown, c.noticePeriod, " +
             "c.visaStatus, " +
             "null, null, null, " +
             "a.cvName, a.cvType, a.coverLetterName, a.coverLetterType, " +
@@ -25,4 +30,9 @@ public interface CandidateRepository extends JpaRepository<Candidate_Openings, L
             "LEFT JOIN c.attachments a " +
             "ORDER BY c.firstName ASC")
     List<CandidateDTO> getAllCandidatesWithAttachments();
+
+    @Query("SELECT COUNT(c) FROM Candidate_Openings c WHERE c.opening.id = :openingId")
+    Long countByOpeningId(@Param("openingId") Integer openingId);
+
+    List<Candidate_Openings> findByOpening_Id(Integer openingId);
     }

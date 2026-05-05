@@ -67,8 +67,10 @@ public class CandidateServiceImpl implements CandidateService {
             candidate.setEmail(request.getEmail());
             candidate.setPhone(request.getPhone());
             candidate.setExperience(request.getExperience());
+            candidate.setCurrentSalary(request.getCurrentSalary());
+            candidate.setCurrentSalaryCurrency(request.getCurrentSalaryCurrency());
             candidate.setExpectedSalary(request.getExpectedSalary());
-
+            candidate.setExpectedSalaryCurrency(request.getExpectedSalaryCurrency());
             candidate.setLocation(request.getLocation());
             candidate.setNoticePeriod(request.getNoticePeriod());
             candidate.setLanguagesKnown(request.getLanguagesKnown());
@@ -217,7 +219,7 @@ public class CandidateServiceImpl implements CandidateService {
            // Build Tracking Link
             // ===============================
 
-            String trackingLink = "http://localhost:4200/track?token=" + token;
+            String trackingLink = "http://localhost:3000/track?token=" + token;
             // 👉 change to your frontend URL
 
             // ===============================
@@ -254,7 +256,8 @@ public class CandidateServiceImpl implements CandidateService {
                     candidate.getEmail(),
                     candidate.getFirstName(),
                     opening.getName(),
-                    trackingLink
+                    trackingLink,
+                    opening.getLocation()
             );
             Resource hr = opening.getCreatedBy();
 
@@ -297,6 +300,7 @@ public class CandidateServiceImpl implements CandidateService {
         dto.setPhone(candidate.getPhone());
         dto.setExperience(candidate.getExperience());
         dto.setExpectedSalary(candidate.getExpectedSalary());
+        dto.setExpectedSalaryCurrency(candidate.getExpectedSalaryCurrency());
         dto.setLanguagesKnown(candidate.getLanguagesKnown());
         dto.setNoticePeriod(candidate.getNoticePeriod());
         dto.setVisaStatus(candidate.getVisaStatus());
@@ -343,6 +347,7 @@ public class CandidateServiceImpl implements CandidateService {
         candidate.setPhone(candidateDTO.getPhone());
         candidate.setExperience(candidateDTO.getExperience());
         candidate.setExpectedSalary(candidateDTO.getExpectedSalary());
+        candidate.setExpectedSalaryCurrency(candidateDTO.getExpectedSalaryCurrency());
         candidate.setLocation(candidateDTO.getLocation());
         candidate.setLanguagesKnown(candidateDTO.getLanguagesKnown());
         candidate.setNoticePeriod(candidateDTO.getNoticePeriod());
@@ -413,6 +418,7 @@ public class CandidateServiceImpl implements CandidateService {
         response.setPhone(candidate.getPhone());
         response.setExperience(candidate.getExperience());
         response.setExpectedSalary(candidate.getExpectedSalary());
+        response.setExpectedSalaryCurrency(candidate.getExpectedSalaryCurrency());
         response.setLocation(candidate.getLocation());
         response.setLanguagesKnown(candidate.getLanguagesKnown());
         response.setNoticePeriod(candidate.getNoticePeriod());
@@ -446,7 +452,8 @@ public class CandidateServiceImpl implements CandidateService {
                 emailService.sendRejectionEmail(
                         candidate.getEmail(),
                         candidate.getFirstName(),
-                        candidate.getOpening().getName()
+                        candidate.getOpening().getName(),
+                        candidate.getOpening().getLocation()
                 );
             } catch (Exception e) {
                 log.error("Failed to send rejection email", e);
@@ -551,6 +558,31 @@ public class CandidateServiceImpl implements CandidateService {
             candidateRepository.deleteById(candidateId);
             // No return statement needed in void method
         }
+    }
+
+    @Override
+    public List<CandidateDTO> getCandidatesByOpening(Integer openingId) {
+        List<Candidate_Openings> candidates = candidateRepository.findByOpening_Id(openingId);
+        return candidates.stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    private CandidateDTO mapToDTO(Candidate_Openings c) {
+        CandidateDTO dto = new CandidateDTO();
+        dto.setId(c.getId());
+        dto.setFirstName(c.getFirstName());
+        dto.setLastName(c.getLastName());
+        dto.setEmail(c.getEmail());
+        dto.setPhone(c.getPhone());
+        dto.setExperience(c.getExperience());
+        dto.setExpectedSalary(c.getExpectedSalary());
+        dto.setExpectedSalaryCurrency(c.getExpectedSalaryCurrency());
+        dto.setLocation(c.getLocation());
+        dto.setApplicationStatus(c.getApplicationStatus());
+        dto.setSource(c.getSource());
+        dto.setEmploymentType(c.getEmploymentType());
+        return dto;
     }
 
     private Map<String,Integer> wordFrequency(String text){
