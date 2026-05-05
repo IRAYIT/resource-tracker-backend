@@ -73,7 +73,6 @@ public class ResourceController {
                     required = true
             )
             @RequestParam("payload") final String payload) throws AddressException, ParseException, IOException {
-    System.out.println("calling.....");
         return ResponseEntity.ok(resourceService.create(attachments, payload));
     }
 
@@ -163,9 +162,9 @@ public class ResourceController {
                     content = @Content)
     })
     @GetMapping(path = "byName/{name}")
-    public ResponseEntity<ResourceDTO> getResourceByName(@PathVariable(value = "name") final String name) {
+    public ResponseEntity<List<ResourceDTO>> getResourceByName(@PathVariable(value = "name") final String name) {
         log.info("getResourceByName");
-        return ResponseEntity.ok(resourceService.findByResourceName(name));
+        return ResponseEntity.ok(resourceService.findAllByResourceName(name));
     }
 
     /**

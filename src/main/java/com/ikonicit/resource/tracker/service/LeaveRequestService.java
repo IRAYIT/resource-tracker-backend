@@ -1,23 +1,27 @@
 package com.ikonicit.resource.tracker.service;
 
-import com.ikonicit.resource.tracker.dto.LeaveRequestDTO;
-import com.ikonicit.resource.tracker.entity.LeaveRequest;
+import com.ikonicit.resource.tracker.dto.*;
 
 import java.util.List;
 
 public interface LeaveRequestService {
 
-    LeaveRequestDTO createLeaveRequest(LeaveRequestDTO leaveRequestDTO);
-    LeaveRequestDTO updateLeaveRequest(LeaveRequestDTO leaveRequestDTO);
-    void deleteLeaveRequest(Integer id);
+    LeaveResponseDTO createLeaveRequest(LeaveRequestDTO leaveRequestDTO);
+    LeaveResponseDTO updateLeaveRequest(LeaveRequestDTO leaveRequestDTO);
+    DeletedLeaveResponseDTO deleteLeaveRequest(Integer id);
 
-    LeaveRequestDTO getLeaveRequestById(Integer id);
+    LeaveResponseDTO getLeaveRequestById(Integer id);
 
     int getTotalDays(Integer id);
 
-    List<LeaveRequestDTO> getAll();
+    List<LeaveResponseDTO> getAll();
 
-    List<LeaveRequestDTO> getLeaveRequestByResourceId(Integer resourceId);
+    List<LeaveResponseDTO> getLeaveRequestByResourceId(Integer resourceId);
 
-    List<LeaveRequestDTO> getLeaveRequestBymanagerId(Integer managerId);
+    List<LeaveResponseDTO> getLeaveRequestBymanagerId(Integer managerId);
+
+    List<LeaveTypeDTO> getLeaveTypes();
+
+    String updateStatus(LeaveReqUpdateStatusDTO leaveReqUpdateStatusDTO);
+
 }

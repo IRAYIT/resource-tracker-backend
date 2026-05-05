@@ -35,7 +35,7 @@ public interface ResourceService {
 
     List<ResourceDTO> getAllManagers();
 
-    ResourceDTO findByResourceName(String resourceName);
+    List<ResourceDTO> findAllByResourceName(String resourceName);
 
     String checkResourceName(String resourceName);
 
