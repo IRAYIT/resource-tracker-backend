@@ -26,6 +26,12 @@ public class Candidate_Openings {
 
     private Integer experience;
 
+    @Column(name = "current_salary_currency")
+    private String currentSalaryCurrency;
+    
+    @Column(name = "current_salary")
+    private String currentSalary;
+
     @Column(name = "expected_salary_currency")
     private String expectedSalaryCurrency;
 

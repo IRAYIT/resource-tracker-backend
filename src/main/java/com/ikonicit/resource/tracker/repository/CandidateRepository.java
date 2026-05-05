@@ -17,7 +17,10 @@ public interface CandidateRepository extends JpaRepository<Candidate_Openings, L
     @Query("SELECT new com.ikonicit.resource.tracker.dto.CandidateDTO(" +
             "c.id, c.firstName, c.lastName, c.email, c.phone, c.experience, " +
             "c.expectedSalaryCurrency, " +
-            "c.expectedSalary, c.location, c.languagesKnown, c.noticePeriod, " +
+            "c.expectedSalary," +
+           "c.currentSalaryCurrency, " +
+            "c.currentSalary," +
+            " c.location, c.languagesKnown, c.noticePeriod, " +
             "c.visaStatus, " +
             "null, null, null, " +
             "a.cvName, a.cvType, a.coverLetterName, a.coverLetterType, " +
