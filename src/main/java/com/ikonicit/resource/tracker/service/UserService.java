@@ -14,4 +14,9 @@ public interface UserService {
     public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO);
 
 
+    Boolean checkEmail(String email);
+
+    String sendOtp(String email);
+
+    String verifyOtp(String email, String otp);
 }

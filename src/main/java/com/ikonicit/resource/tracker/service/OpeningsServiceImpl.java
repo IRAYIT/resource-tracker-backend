@@ -61,7 +61,9 @@ public class OpeningsServiceImpl implements OpeningsService {
 
         Openings openings = buildOpenings(openingsDTO);
 
-        // ✅ FIX: manually set relationships
+        openings.setStatus("ACTIVE");
+
+
         Resource createdBy = resourceRepository.findById(openingsDTO.getCreatedBy())
                 .orElseThrow(() -> new RuntimeException("HR not found"));
 
@@ -104,7 +106,6 @@ public class OpeningsServiceImpl implements OpeningsService {
 
         Openings openings = buildOpenings(openingsDTO);
 
-        // ✅ manually set relationships
         Resource createdBy = resourceRepository.findById(openingsDTO.getCreatedBy())
                 .orElseThrow(() -> new RuntimeException("HR not found"));
 
@@ -201,7 +202,6 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
 }
 
     private Openings buildOpenings(OpeningsDTO dto) {
-        dto.setStatus("ACTIVE");
 
         Integer createdBy = dto.getCreatedBy();
         Integer updatedBy = dto.getUpdatedBy();
@@ -282,11 +282,9 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
 
             Integer creatorId = openings.getCreatedBy().getId();
 
-            // 🎯 Fetch HR + Manager + Employee in ONE query
             List<Resource> users = resourceRepository
                     .findAllByPermissionIdInAndStatus(List.of(1, 2, 3), "ACTIVE");
 
-            // 🎯 Filter emails (exclude creator)
             List<String> emails = users.stream()
                     .filter(r -> r.getId() != null && !r.getId().equals(creatorId))
                     .map(Resource::getEmail)
@@ -299,11 +297,9 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
                 return;
             }
 
-            // 🎯 Send email
             SimpleMailMessage message = new SimpleMailMessage();
 
             message.setTo(emails.toArray(new String[0]));
-            // OR better:
             // message.setBcc(emails.toArray(new String[0]));
 
             message.setSubject("New Job Opening: " + openings.getName());
@@ -321,7 +317,6 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
 
         } catch (Exception e) {
             log.error("Error sending opening email", e);
-            // Don't throw — opening is already saved, just log the email failure
         }
     }
 

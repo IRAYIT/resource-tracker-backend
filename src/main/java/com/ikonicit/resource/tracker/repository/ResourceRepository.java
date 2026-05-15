@@ -33,7 +33,7 @@ public interface ResourceRepository extends JpaRepository<Resource, Integer> {
             "where (r.skill like %?1% or r.technology like %?2%) and r.status != ?3 order by r.resourceName")
     List<ResourceNamesResponseDTO> getDeveloperNames(String skill, String resourceName, String status);
 
-    @Query(value = "SELECT * FROM resource r WHERE r.manager_id IS NULL AND r.permission_id = 3", nativeQuery = true)
+    @Query(value = "SELECT * FROM resource r WHERE r.manager_id IS NULL AND r.permission_id = 4", nativeQuery = true)
     List<Resource> findByManagerIdIsNull();
 
     List<Resource> findAllByPermissionIdInAndStatus(List<Integer> permissionIds, String status);
