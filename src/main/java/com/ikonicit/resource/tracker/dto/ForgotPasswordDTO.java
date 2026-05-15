@@ -11,4 +11,6 @@ public class ForgotPasswordDTO {
 
 	@NotBlank(message = "Email must not be empty")
 	private String email;
+	private String password;
+
 }

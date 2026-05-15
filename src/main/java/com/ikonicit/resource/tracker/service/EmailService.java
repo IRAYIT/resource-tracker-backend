@@ -34,7 +34,7 @@ public class EmailService {
             } else if ("Sweden".equalsIgnoreCase(location)) {
                 companyName = "I-Ray IT Solutions AB";
             } else {
-                companyName = "I-Ray IT Solutions";  // default fallback
+                companyName = "I-Ray IT Solutions INC";
             }
 
             // ===============================
@@ -108,7 +108,6 @@ public class EmailService {
                             "Resume is attached."
             );
 
-            // ✅ Attach CV
             helper.addAttachment(
                     cv.getOriginalFilename(),
                     new ByteArrayResource(cv.getBytes())

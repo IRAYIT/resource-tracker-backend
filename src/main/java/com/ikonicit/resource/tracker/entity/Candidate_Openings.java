@@ -28,7 +28,7 @@ public class Candidate_Openings {
 
     @Column(name = "current_salary_currency")
     private String currentSalaryCurrency;
-    
+
     @Column(name = "current_salary")
     private String currentSalary;
 
@@ -38,6 +38,9 @@ public class Candidate_Openings {
     private String expectedSalary;
 
     private LocalDateTime createdAt;
+
+    @Column(name = "skills")
+    private String skills;
 
     @Column(name = "languages_known")
     private String languagesKnown;
@@ -65,8 +68,19 @@ public class Candidate_Openings {
 
     private String source;
 
+    /**
+     * Candidate's consent to keep their CV in the database for future openings.
+     * <ul>
+     *   <li>{@code true}  – CV is retained indefinitely for talent pipeline use.</li>
+     *   <li>{@code false} – CV bytes are wiped from {@link CandidateAttachments}
+     *       once the linked job opening is closed.</li>
+     *   <li>{@code null}  – Not yet answered (treated the same as {@code false}
+     *       by the cleanup scheduler).</li>
+     * </ul>
+     */
+    @Column(name = "retain_cv_for_future", nullable = true)
+    private Boolean retainCvForFuture;
+
     @OneToOne(mappedBy = "candidateOpenings", fetch = FetchType.LAZY)
     private CandidateAttachments attachments;
-
-
 }

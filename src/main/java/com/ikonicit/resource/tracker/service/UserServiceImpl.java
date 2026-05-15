@@ -34,6 +34,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     CredentialsRepository credentialsRepository;
 
+    @Autowired
+    private OtpService otpService;
+
+    @Autowired
+    private JavaMailSender javaMailSender;
+
 
     @Override
     public String changePassword(ChangePasswordDTO changePasswordDTO) {
@@ -68,18 +74,41 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) {
-        Credentials email = credentialsRepository.findByEmail(forgotPasswordDTO.getEmail());
-        if (Predicates.isNotNull.test(email.getPassword())) {
-            email.setPassword("Res@123");
-            credentialsRepository.save(email);
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(forgotPasswordDTO.getEmail());
-            message.setSubject("New Password For Resource Tracker Login");
-            message.setText("Use This Password:Res@123 To Login and can change later");
-            JavaMailSender.send(message);
-            return "Password sent to your mail";
+        Credentials credentials = credentialsRepository.findByEmail(forgotPasswordDTO.getEmail());
+        if (Predicates.isNotNull.test(credentials)) {
+            credentials.setPassword(forgotPasswordDTO.getPassword());
+            credentialsRepository.save(credentials);
+            return "Password Changed Successfully";
         }
         throw new ResourceNotFoundException("Invalid Email. Please Enter Correct Email");
     }
+
+    @Override
+    public Boolean checkEmail(String email) {
+        Credentials credentials = credentialsRepository.findByEmail(email);
+        return credentials != null;
+    }
+
+    public String sendOtp(String email) {
+        Credentials credentials = credentialsRepository.findByEmail(email);
+        if (credentials == null) {
+            throw new ResourceNotFoundException("No account found with this email.");
+        }
+        String otp = otpService.generateOtp(email);
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("OTP For Password Reset - Candidate Tracker");
+        message.setText("Your OTP for password reset is: " + otp + "\nThis OTP is valid for one time use only.");
+        javaMailSender.send(message);
+        return "OTP sent to your email";
+    }
+
+    public String verifyOtp(String email, String otp) {
+        if (otpService.validateOtp(email, otp)) {
+            return "OTP Verified";
+        }
+        return "Invalid OTP";
+    }
+
 
 }

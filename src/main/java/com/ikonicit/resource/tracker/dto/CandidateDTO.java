@@ -30,6 +30,8 @@ public class CandidateDTO {
 
     private String location;
 
+    private String skills;
+
     private String languagesKnown;
 
     private Integer noticePeriod;
@@ -60,6 +62,9 @@ public class CandidateDTO {
 
     private String employmentType;
 
-
-
+    /**
+     * Whether the candidate consented to keeping their CV for future openings.
+     * Sent from the application form and persisted on the candidate record.
+     */
+    private Boolean retainCvForFuture;
 }

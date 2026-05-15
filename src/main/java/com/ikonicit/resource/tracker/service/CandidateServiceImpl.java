@@ -73,6 +73,7 @@ public class CandidateServiceImpl implements CandidateService {
             candidate.setExpectedSalaryCurrency(request.getExpectedSalaryCurrency());
             candidate.setLocation(request.getLocation());
             candidate.setNoticePeriod(request.getNoticePeriod());
+            candidate.setSkills(request.getSkills());
             candidate.setLanguagesKnown(request.getLanguagesKnown());
             candidate.setVisaStatus(request.getVisaStatus());
 
@@ -81,6 +82,7 @@ public class CandidateServiceImpl implements CandidateService {
             candidate.setApplicationStatus("APPLIED");
             candidate.setSource(request.getSource());
             candidate.setEmploymentType(request.getEmploymentType());
+            candidate.setRetainCvForFuture(request.getRetainCvForFuture());
 
             // ===============================
             // Resume Parsing
@@ -215,12 +217,11 @@ public class CandidateServiceImpl implements CandidateService {
 
             applicationTrackingRepository.save(tracking);
 
-           // ===============================
-           // Build Tracking Link
+            // ===============================
+            // Build Tracking Link
             // ===============================
 
             String trackingLink = "http://localhost:3000/track?token=" + token;
-            // 👉 change to your frontend URL
 
             // ===============================
             // Save Attachments
@@ -259,6 +260,7 @@ public class CandidateServiceImpl implements CandidateService {
                     trackingLink,
                     opening.getLocation()
             );
+
             Resource hr = opening.getCreatedBy();
 
             if (hr == null || hr.getEmail() == null) {
@@ -274,12 +276,14 @@ public class CandidateServiceImpl implements CandidateService {
                     candidate.getPhone(),
                     opening.getName(),
                     candidate.getMatchPercentage(),
-                    cv   // 🔥 important
+                    cv
             );
+
         } catch (IOException e) {
             throw new RuntimeException("Resume upload failed");
         }
     }
+
     @Override
     public CandidateDTO getCandidate(Long candidateId) {
 
@@ -288,19 +292,22 @@ public class CandidateServiceImpl implements CandidateService {
 
         CandidateDTO dto = new CandidateDTO();
 
-        // ✅ IMPORTANT: Set ID (Fix for null issue in frontend)
         dto.setId(candidate.getId());
 
         // ===============================
         // Candidate Details
         // ===============================
+
         dto.setFirstName(candidate.getFirstName());
         dto.setLastName(candidate.getLastName());
         dto.setEmail(candidate.getEmail());
         dto.setPhone(candidate.getPhone());
         dto.setExperience(candidate.getExperience());
+        dto.setCurrentSalary(candidate.getCurrentSalary());
+        dto.setCurrentSalaryCurrency(candidate.getCurrentSalaryCurrency());
         dto.setExpectedSalary(candidate.getExpectedSalary());
         dto.setExpectedSalaryCurrency(candidate.getExpectedSalaryCurrency());
+        dto.setSkills(candidate.getSkills());
         dto.setLanguagesKnown(candidate.getLanguagesKnown());
         dto.setNoticePeriod(candidate.getNoticePeriod());
         dto.setVisaStatus(candidate.getVisaStatus());
@@ -308,12 +315,13 @@ public class CandidateServiceImpl implements CandidateService {
         dto.setSource(candidate.getSource());
         dto.setLocation(candidate.getLocation());
         dto.setEmploymentType(candidate.getEmploymentType());
-
+        dto.setRetainCvForFuture(candidate.getRetainCvForFuture());
         // ===============================
         // Attachments
         // ===============================
+
         Optional<CandidateAttachments> candidateAttachments =
-                candidateAttachmentsRepository.findByCandidateOpeningsId(candidate.getId());
+                candidateAttachmentsRepository.findByCandidateOpenings_Id(candidate.getId());
 
         candidateAttachments.ifPresent(attachment -> {
             dto.setCvName(attachment.getCvName());
@@ -346,15 +354,18 @@ public class CandidateServiceImpl implements CandidateService {
         candidate.setEmail(candidateDTO.getEmail());
         candidate.setPhone(candidateDTO.getPhone());
         candidate.setExperience(candidateDTO.getExperience());
+        candidate.setCurrentSalary(candidateDTO.getCurrentSalary());
+        candidate.setCurrentSalaryCurrency(candidateDTO.getCurrentSalaryCurrency());
         candidate.setExpectedSalary(candidateDTO.getExpectedSalary());
         candidate.setExpectedSalaryCurrency(candidateDTO.getExpectedSalaryCurrency());
         candidate.setLocation(candidateDTO.getLocation());
+        candidate.setSkills(candidateDTO.getSkills());
         candidate.setLanguagesKnown(candidateDTO.getLanguagesKnown());
         candidate.setNoticePeriod(candidateDTO.getNoticePeriod());
         candidate.setVisaStatus(candidateDTO.getVisaStatus());
-        candidate.setLocation(candidateDTO.getLocation());
         candidate.setSource(candidateDTO.getSource());
-        candidate.setEmploymentType(candidate.getEmploymentType());
+        candidate.setEmploymentType(candidateDTO.getEmploymentType());
+
         candidateRepository.save(candidate);
 
         // ===============================
@@ -370,29 +381,17 @@ public class CandidateServiceImpl implements CandidateService {
 
         try {
 
-            // ===============================
-            // Update Resume
-            // ===============================
-
             if (resume != null && !resume.isEmpty()) {
                 attachments.setCv(resume.getBytes());
                 attachments.setCvName(resume.getOriginalFilename());
                 attachments.setCvType(resume.getContentType());
             }
 
-            // ===============================
-            // Update Cover Letter
-            // ===============================
-
             if (coverLetter != null && !coverLetter.isEmpty()) {
                 attachments.setCoverLetter(coverLetter.getBytes());
                 attachments.setCoverLetterType(coverLetter.getContentType());
                 attachments.setCoverLetterName(coverLetter.getOriginalFilename());
             }
-
-            // ===============================
-            // Update Additional Documents
-            // ===============================
 
             if (additionalDocuments != null && !additionalDocuments.isEmpty()) {
                 attachments.setAdditionalDocuments(additionalDocuments.getBytes());
@@ -417,13 +416,18 @@ public class CandidateServiceImpl implements CandidateService {
         response.setEmail(candidate.getEmail());
         response.setPhone(candidate.getPhone());
         response.setExperience(candidate.getExperience());
+        response.setCurrentSalary(candidate.getCurrentSalary());
+        response.setCurrentSalaryCurrency(candidate.getCurrentSalaryCurrency());
         response.setExpectedSalary(candidate.getExpectedSalary());
         response.setExpectedSalaryCurrency(candidate.getExpectedSalaryCurrency());
         response.setLocation(candidate.getLocation());
+        response.setSkills(candidate.getSkills());
         response.setLanguagesKnown(candidate.getLanguagesKnown());
         response.setNoticePeriod(candidate.getNoticePeriod());
         response.setVisaStatus(candidate.getVisaStatus());
         response.setApplicationStatus(candidate.getApplicationStatus());
+        response.setSource(candidate.getSource());
+        response.setEmploymentType(candidate.getEmploymentType());
 
         return response;
     }
@@ -434,7 +438,6 @@ public class CandidateServiceImpl implements CandidateService {
         Candidate_Openings candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
 
-        // ✅ Validate status (important)
         List<String> validStatuses = List.of("APPLIED", "SHORTLISTED", "REJECTED", "HIRED");
 
         if (!validStatuses.contains(applicationStatus)) {
@@ -445,7 +448,6 @@ public class CandidateServiceImpl implements CandidateService {
 
         candidateRepository.save(candidate);
 
-        // ✅ NEW LOGIC: Send regret email
         if ("REJECTED".equalsIgnoreCase(applicationStatus)) {
 
             try {
@@ -464,7 +466,7 @@ public class CandidateServiceImpl implements CandidateService {
     @Override
     public ResponseEntity<byte[]> getCv(Long candidateId) {
         CandidateAttachments attachments = candidateAttachmentsRepository
-                .findByCandidateOpeningsId(candidateId)
+                .findByCandidateOpenings_Id(candidateId)
                 .orElseThrow(() -> new RuntimeException("Resume not found"));
 
         return ResponseEntity.ok()
@@ -473,11 +475,12 @@ public class CandidateServiceImpl implements CandidateService {
                 .contentType(MediaType.parseMediaType(attachments.getCvType()))
                 .body(attachments.getCv());
     }
+
     @Override
     public ResponseEntity<byte[]> getCoverLetter(Long candidateId) {
 
         CandidateAttachments attachments = candidateAttachmentsRepository
-                .findByCandidateOpeningsId(candidateId)
+                .findByCandidateOpenings_Id(candidateId)
                 .orElseThrow(() -> new RuntimeException("Cover letter not found"));
 
         byte[] fileData = attachments.getCoverLetter();
@@ -492,11 +495,12 @@ public class CandidateServiceImpl implements CandidateService {
                 .contentType(MediaType.parseMediaType(attachments.getCoverLetterType()))
                 .body(fileData);
     }
+
     @Override
     public ResponseEntity<byte[]> getAdditionalDocuments(Long candidateId) {
 
         CandidateAttachments attachments = candidateAttachmentsRepository
-                .findByCandidateOpeningsId(candidateId)
+                .findByCandidateOpenings_Id(candidateId)
                 .orElseThrow(() -> new RuntimeException("Documents not found"));
 
         byte[] fileData = attachments.getAdditionalDocuments();
@@ -531,7 +535,8 @@ public class CandidateServiceImpl implements CandidateService {
                 "name", candidate.getFirstName(),
                 "jobTitle", candidate.getOpening().getName(),
                 "status", candidate.getApplicationStatus(),
-                "matchPercentage", candidate.getMatchPercentage()
+                "matchPercentage", candidate.getMatchPercentage(),
+                "country", candidate.getOpening().getLocation()
         );
     }
 
@@ -544,11 +549,9 @@ public class CandidateServiceImpl implements CandidateService {
         Optional<Candidate_Openings> candidateOpenings = candidateRepository.findById(candidateId);
 
         if (candidateOpenings.isPresent()) {
-            // Safely unwrap the Optional before calling methods on it
             Optional<CandidateAttachments> attachments =
-                    candidateAttachmentsRepository.findByCandidateOpeningsId(candidateId);
+                    candidateAttachmentsRepository.findByCandidateOpenings_Id(candidateId);
 
-            // Check if attachment exists before deleting
             if (attachments.isPresent()) {
                 candidateAttachmentsRepository.deleteById(
                         attachments.get().getCandidateAttachmentId()
@@ -556,7 +559,6 @@ public class CandidateServiceImpl implements CandidateService {
             }
 
             candidateRepository.deleteById(candidateId);
-            // No return statement needed in void method
         }
     }
 
@@ -576,29 +578,33 @@ public class CandidateServiceImpl implements CandidateService {
         dto.setEmail(c.getEmail());
         dto.setPhone(c.getPhone());
         dto.setExperience(c.getExperience());
+        dto.setCurrentSalary(c.getCurrentSalary());
+        dto.setCurrentSalaryCurrency(c.getCurrentSalaryCurrency());
         dto.setExpectedSalary(c.getExpectedSalary());
         dto.setExpectedSalaryCurrency(c.getExpectedSalaryCurrency());
         dto.setLocation(c.getLocation());
+        dto.setSkills(c.getSkills());
+        dto.setLanguagesKnown(c.getLanguagesKnown());
         dto.setApplicationStatus(c.getApplicationStatus());
         dto.setSource(c.getSource());
         dto.setEmploymentType(c.getEmploymentType());
         return dto;
     }
 
-    private Map<String,Integer> wordFrequency(String text){
+    private Map<String, Integer> wordFrequency(String text) {
 
-        Map<String,Integer> map = new HashMap<>();
+        Map<String, Integer> map = new HashMap<>();
 
         String[] words = text.toLowerCase().split("\\W+");
 
-        for(String word : words){
-            map.put(word,map.getOrDefault(word,0)+1);
+        for (String word : words) {
+            map.put(word, map.getOrDefault(word, 0) + 1);
         }
 
         return map;
     }
 
-    private double cosineSimilarity(Map<String,Integer> v1, Map<String,Integer> v2){
+    private double cosineSimilarity(Map<String, Integer> v1, Map<String, Integer> v2) {
 
         Set<String> words = new HashSet<>();
 
@@ -609,17 +615,17 @@ public class CandidateServiceImpl implements CandidateService {
         double normA = 0;
         double normB = 0;
 
-        for(String word : words){
+        for (String word : words) {
 
-            int a = v1.getOrDefault(word,0);
-            int b = v2.getOrDefault(word,0);
+            int a = v1.getOrDefault(word, 0);
+            int b = v2.getOrDefault(word, 0);
 
             dotProduct += a * b;
             normA += a * a;
             normB += b * b;
         }
 
-        if(normA == 0 || normB == 0){
+        if (normA == 0 || normB == 0) {
             return 0;
         }
 
@@ -639,11 +645,11 @@ public class CandidateServiceImpl implements CandidateService {
 
         Set<String> detectedSkills = new HashSet<>();
 
-        for(String skill : SkillDictionary.SKILLS){
+        for (String skill : SkillDictionary.SKILLS) {
 
             String pattern = "\\b" + skill + "\\b";
 
-            if(resumeText.matches(".*" + pattern + ".*")){
+            if (resumeText.matches(".*" + pattern + ".*")) {
                 detectedSkills.add(skill);
             }
         }

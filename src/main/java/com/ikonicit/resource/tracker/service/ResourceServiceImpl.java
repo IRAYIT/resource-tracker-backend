@@ -126,7 +126,7 @@ public class ResourceServiceImpl implements ResourceService {
     public ResourceDTO create(List<MultipartFile> attachments, String payload) throws AddressException {
         ResourceDTO resourceDTO = getResourceDTO(payload);
         Resource resource = resourceRepository.save(createResource(resourceDTO, attachments));
-        if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 2) {
+        if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 3) {
             assignEmployeesToManager(resource.getId(), resourceDTO.getAssignedResourceIds());
         }
         return sendEmailToResource(resource);
@@ -381,11 +381,14 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setPermission(permission);
         resource.setCreatedBy("ADMIN");
         resource.setUpdatedBy("ADMIN");
-        List<Integer> assignedResources = resourceRepository.findByManagerIdIsNull()
-                .stream()
-                .map(Resource::getId)
-                .toList();
-        resourceDTO.setAssignedResourceIds(assignedResources);
+
+        // ✅ Fix: REMOVE these 3 lines completely — don't overwrite assignedResourceIds
+        // List<Integer> assignedResources = resourceRepository.findByManagerIdIsNull()
+        //         .stream()
+        //         .map(Resource::getId)
+        //         .toList();
+        // resourceDTO.setAssignedResourceIds(assignedResources);
+
         Integer managerId = resourceDTO.getManagerId();
         if (Predicates.isIdNotEmpty.test(managerId)) {
             Resource manager = resourceObjectFactory.getObject();
