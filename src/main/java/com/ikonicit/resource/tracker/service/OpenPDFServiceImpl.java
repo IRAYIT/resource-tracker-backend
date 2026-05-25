@@ -181,22 +181,18 @@ public class OpenPDFServiceImpl implements OpenPDFService{
             } else if ("Java Developer".equals(internship.getInternPosition())) {
                 StringBuilder text6 = new StringBuilder();
 
-                // Append the text without new paragraphs for the sixth block
                 text6.append("As a Backend Java Developer, you'll contribute to building robust and efficient server-side applications. ")
                         .append("Responsibilities include designing and implementing scalable backend solutions, optimizing database performance, ")
                         .append("and ensuring secure data management. Work with Java, Spring, and database technologies to support the development ")
                         .append("of server-side logic. Gain hands-on experience in handling data storage, API development, and collaborating in a dynamic ")
                         .append("development environment.");
 
-                // Create a single Paragraph with the concatenated text
                 Paragraph paragraph6 = new Paragraph(text6.toString());
 
-                // Add the Paragraph to the Document
                 document.add(paragraph6);
             } else if ("Software Engineer".equals(internship.getInternPosition())) {
                 StringBuilder text1 = new StringBuilder();
 
-                // Append the text without new paragraphs
                 text1.append("Collaborating closely with the Software Engineer team, I focus on optimizing processes and ")
                         .append("enhancing system reliability. My responsibilities include designing, implementing, maintaining ")
                         .append("tools to streamline workflows within the environment. Participate in the troubleshooting and ")
@@ -265,7 +261,6 @@ public class OpenPDFServiceImpl implements OpenPDFService{
                     .append(" We look forward to welcoming you to Sunshine Creative Labs and working ")
                     .append("together towards shared success.");
 
-            // Create a single Paragraph with the concatenated text
             Paragraph paragraph2 = new Paragraph(text2.toString());
             document.add(paragraph2);
 

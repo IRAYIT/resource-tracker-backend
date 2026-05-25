@@ -73,7 +73,6 @@ public class OpeningsServiceImpl implements OpeningsService {
         openings.setCreatedBy(createdBy);
         openings.setUpdatedBy(updatedBy);
 
-        // generate public key
         openings.setPublicUrlKey(generatePublicKey());
 
         openings = openingsRepository.save(openings);

@@ -79,10 +79,8 @@ public class Resource implements Serializable {
     @JsonManagedReference
     private List<ResourceAttachments> attachments;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "resource")
-    @Fetch(value = FetchMode.SUBSELECT)
-    @JsonManagedReference
-    private List<Project> projects;
+    @ManyToMany(mappedBy = "resources", fetch = FetchType.LAZY)
+    private List<ProjectRole> projectRoles;
 
     @ManyToOne(fetch = FetchType.EAGER)
     //@JoinColumn(name = "permission_id")

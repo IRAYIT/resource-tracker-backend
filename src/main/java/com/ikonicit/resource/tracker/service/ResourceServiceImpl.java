@@ -382,7 +382,6 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setCreatedBy("ADMIN");
         resource.setUpdatedBy("ADMIN");
 
-        // ✅ Fix: REMOVE these 3 lines completely — don't overwrite assignedResourceIds
         // List<Integer> assignedResources = resourceRepository.findByManagerIdIsNull()
         //         .stream()
         //         .map(Resource::getId)
