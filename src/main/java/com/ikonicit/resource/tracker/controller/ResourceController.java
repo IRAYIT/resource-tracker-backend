@@ -114,8 +114,7 @@ public class ResourceController {
                     required = true,
                     schema = @Schema(type = "array", implementation = MultipartFile.class)
             )
-            @RequestParam("attachments") List<MultipartFile> attachments,
-
+            @RequestParam(value = "attachments", required = false) List<MultipartFile> attachments,
             @Parameter(
                     description = "Payload",
                     required = true

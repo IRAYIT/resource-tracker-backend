@@ -438,7 +438,7 @@ public class CandidateServiceImpl implements CandidateService {
         Candidate_Openings candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new RuntimeException("Candidate not found"));
 
-        List<String> validStatuses = List.of("APPLIED", "SHORTLISTED", "REJECTED", "HIRED");
+        List<String> validStatuses = List.of("APPLIED", "SHORTLISTED", "REJECTED", "INTERVIEW","SELECTED");
 
         if (!validStatuses.contains(applicationStatus)) {
             throw new BadRequestException("Invalid status");

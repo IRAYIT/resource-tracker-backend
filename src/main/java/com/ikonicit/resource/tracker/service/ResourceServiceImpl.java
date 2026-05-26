@@ -153,7 +153,11 @@ public class ResourceServiceImpl implements ResourceService {
         if (resourceOptional.isPresent()) {
             source = buildResourceDTO(resourceOptional.get());
         }
-        Resource resource = resourceRepository.save(createResource(resourceDTO, attachments));
+
+        // Pass empty list if attachments is null
+        List<MultipartFile> safeAttachments = (attachments != null) ? attachments : List.of();
+
+        Resource resource = resourceRepository.save(createResource(resourceDTO, safeAttachments));
         if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 2) {
             assignEmployeesToManager(resource.getId(), resourceDTO.getAssignedResourceIds());
         }
