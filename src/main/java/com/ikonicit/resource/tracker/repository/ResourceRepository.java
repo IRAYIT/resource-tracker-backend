@@ -86,4 +86,6 @@ public interface ResourceRepository extends JpaRepository<Resource, Integer> {
     List<Resource> findByManagerIdIsNull();
 
     List<Resource> findAllByPermissionIdInAndStatus(List<Integer> permissionIds, String status);
+
+    boolean existsByEmail(String email);
 }

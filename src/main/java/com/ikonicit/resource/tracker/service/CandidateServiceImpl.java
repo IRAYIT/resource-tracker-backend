@@ -54,6 +54,13 @@ public class CandidateServiceImpl implements CandidateService {
                 .findByPublicUrlKey(publicUrlKey)
                 .orElseThrow(() -> new RuntimeException("Opening not found"));
 
+        boolean alreadyApplied = candidateRepository
+                .existsByEmailAndOpeningId(request.getEmail(), opening.getId());
+
+        if (alreadyApplied) {
+            throw new RuntimeException("You have already applied for this position.");
+        }
+
         try {
 
             Candidate_Openings candidate = new Candidate_Openings();

@@ -13,11 +13,14 @@ import com.ikonicit.resource.tracker.repository.CandidateRepository;
 import com.ikonicit.resource.tracker.repository.OpeningsRepository;
 import com.ikonicit.resource.tracker.repository.ResourceRepository;
 import com.ikonicit.resource.tracker.utils.Constants;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import java.util.Objects;
 
@@ -50,6 +53,10 @@ public class OpeningsServiceImpl implements OpeningsService {
 
     @Value("${spring.openingsEmailEnabled}")
     private Boolean openingsEmailEnabled;
+
+
+    @Value("${spring.mail.username}")          // ✅ Add here
+    private String mailUsername;
 
     public OpeningsServiceImpl(OpeningsRepository openingsRepository) {
         this.openingsRepository = openingsRepository;
@@ -276,13 +283,11 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
     }
 
     private void newOpeningEmail(Openings openings) {
-
         try {
-
             Integer creatorId = openings.getCreatedBy().getId();
 
             List<Resource> users = resourceRepository
-                    .findAllByPermissionIdInAndStatus(List.of(1, 2, 3), "ACTIVE");
+                    .findAllByPermissionIdInAndStatus(List.of(1, 2, 3, 4), "ACTIVE");
 
             List<String> emails = users.stream()
                     .filter(r -> r.getId() != null && !r.getId().equals(creatorId))
@@ -296,27 +301,54 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
                 return;
             }
 
-            SimpleMailMessage message = new SimpleMailMessage();
+            // ✅ Send in batches of 50
+            int batchSize = 50;
+            int totalBatches = (int) Math.ceil((double) emails.size() / batchSize);
 
-            message.setTo(emails.toArray(new String[0]));
-            // message.setBcc(emails.toArray(new String[0]));
+            for (int i = 0; i < emails.size(); i += batchSize) {
+                List<String> batch = emails.subList(i, Math.min(i + batchSize, emails.size()));
+                sendBatch(openings, batch);
 
-            message.setSubject("New Job Opening: " + openings.getName());
+                log.info("Sent batch {}/{}", (i / batchSize) + 1, totalBatches);
 
-            message.setText(
-                    "A new job opening has been created.\n\n" +
-                            "Role: " + openings.getName() + "\n" +
-                            "Technology: " + openings.getTechnology() + "\n" +
-                            "Skills: " + openings.getSkill() + "\n" +
-                            "Experience: " + openings.getExperience()
-            );
+                // ✅ Fix
+                if (i + batchSize < emails.size()) {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.warn("Batch email interrupted");
+                        break;
+                    }
+                }
+            }
 
-            javaMailSender.send(message);
-            log.info("Email sent successfully");
+            log.info("Opening email sent successfully to {} recipients", emails.size());
 
         } catch (Exception e) {
             log.error("Error sending opening email", e);
         }
     }
 
+    private void sendBatch(Openings openings, List<String> batch) throws MessagingException {
+        MimeMessage message = javaMailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+
+        helper.setFrom(mailUsername);
+        helper.setTo(mailUsername);                       // ✅ To: field required
+        helper.setBcc(batch.toArray(new String[0]));                        // ✅ BCC all recipients
+
+        helper.setSubject("New Job Opening: " + openings.getName());
+        helper.setText(
+                "A new job opening has been created.\n\n" +
+                        "Role: " + openings.getName() + "\n" +
+                        "Technology: " + openings.getTechnology() + "\n" +
+                        "Skills: " + openings.getSkill() + "\n" +
+                        "Experience: " + openings.getExperience(),
+                false // plain text, change to true if sending HTML
+        );
+
+        javaMailSender.send(message);
+    }
 }
