@@ -542,35 +542,20 @@ public class ResourceServiceImpl implements ResourceService {
         if (!source.getTechnology().equalsIgnoreCase(resourceDTO.getTechnology())) {
             email.append("Technology:" + resourceDTO.getTechnology() + "\n");
         }
-        if (!source.getComments().equalsIgnoreCase(resourceDTO.getComments())) {
-            email.append("Comments:" + resourceDTO.getComments() + "\n");
-        }
         if (!source.getEmail().equalsIgnoreCase(resourceDTO.getEmail())) {
             email.append("Email:" + resourceDTO.getEmail() + "\n");
         }
         if (!source.getEmploymentType().equalsIgnoreCase(resourceDTO.getEmploymentType())) {
             email.append("EmploymentType:" + resourceDTO.getEmploymentType() + "\n");
         }
-        if (!source.getEndDate().equals(resourceDTO.getEndDate())) {
-            email.append("EndDate:" + resourceDTO.getEndDate() + "\n");
-        }
-        if (!source.getExperience().equals(resourceDTO.getExperience())) {
-            email.append("Experience:" + resourceDTO.getExperience() + "\n");
-        }
-        if (!source.getLinkedin().equalsIgnoreCase(resourceDTO.getLinkedin())) {
-            email.append("LinkedIn:" + resourceDTO.getLinkedin() + "\n");
+        if (!String.valueOf(source.getExperience()).equals(String.valueOf(resourceDTO.getExperience()))) {
+            email.append("Experience: ").append(resourceDTO.getExperience()).append("\n");
         }
         if (!source.getPhone().equalsIgnoreCase(resourceDTO.getPhone())) {
             email.append("Phone:" + resourceDTO.getPhone() + "\n");
         }
         if (!source.getResourceName().equalsIgnoreCase(resourceDTO.getResourceName())) {
             email.append("Resource Name:" + resourceDTO.getResourceName() + "\n");
-        }
-        if (!source.getStartDate().equals(resourceDTO.getStartDate())) {
-            email.append("StratDate:" + resourceDTO.getStartDate() + "\n");
-        }
-        if (!source.getStatus().equalsIgnoreCase(resourceDTO.getStatus())) {
-            email.append("Status:" + resourceDTO.getStatus() + "\n");
         }
         String to = resourceDTO.getEmail();
         String from = senderEmail;

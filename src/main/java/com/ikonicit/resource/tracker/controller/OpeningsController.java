@@ -158,4 +158,10 @@ public class OpeningsController {
         log.info("getOpeningByPublicUrlKey");
         return ResponseEntity.ok(openingsService.getOpeningByPublicUrlKey(publicUrlKey));
 }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<OpeningsResponseDTO>> getAllOpenings() {
+        log.info("getAllOpenings");
+        return ResponseEntity.ok(openingsService.getAllOpenings());
+    }
 }

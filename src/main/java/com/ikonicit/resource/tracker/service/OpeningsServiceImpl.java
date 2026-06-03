@@ -55,7 +55,7 @@ public class OpeningsServiceImpl implements OpeningsService {
     private Boolean openingsEmailEnabled;
 
 
-    @Value("${spring.mail.username}")          // ✅ Add here
+    @Value("${spring.mail.username}")
     private String mailUsername;
 
     public OpeningsServiceImpl(OpeningsRepository openingsRepository) {
@@ -199,6 +199,10 @@ public class OpeningsServiceImpl implements OpeningsService {
 //        }
 //    }
 
+public List<OpeningsResponseDTO> getAllOpenings() {
+    return buildOpeningsDTOList(openingsRepository.findAllByOrderByIdDesc());
+}
+
 private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) {
     List<OpeningsResponseDTO> openingsDTOS = new ArrayList<>();
     openings.forEach(opening -> {
@@ -332,23 +336,124 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
 
     private void sendBatch(Openings openings, List<String> batch) throws MessagingException {
         MimeMessage message = javaMailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+        String companyName = getCompanyName(openings.getLocation());
+        String applyLink = "http://localhost:3000/jobs/apply/" + openings.getPublicUrlKey();
 
         helper.setFrom(mailUsername);
-        helper.setTo(mailUsername);                       // ✅ To: field required
-        helper.setBcc(batch.toArray(new String[0]));                        // ✅ BCC all recipients
+        helper.setTo(mailUsername);
+        helper.setBcc(batch.toArray(new String[0]));
+        helper.setSubject("New Job Opening at " + companyName + ": " + openings.getName());
 
-        helper.setSubject("New Job Opening: " + openings.getName());
-        helper.setText(
-                "A new job opening has been created.\n\n" +
-                        "Role: " + openings.getName() + "\n" +
-                        "Technology: " + openings.getTechnology() + "\n" +
-                        "Skills: " + openings.getSkill() + "\n" +
-                        "Experience: " + openings.getExperience(),
-                false // plain text, change to true if sending HTML
-        );
+        String htmlContent = "<html>" +
+                "<body style='margin:0; padding:0; font-family: Arial, sans-serif; background-color: #f4f6f9;'>" +
+                "<table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f4f6f9; padding: 30px 0;'>" +
+                "<tr><td align='center'>" +
+                "<table width='600' cellpadding='0' cellspacing='0' style='background-color:#ffffff; border-radius:10px; overflow:hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>" +
 
+                // Header
+                "<tr>" +
+                "<td style='background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 30px 40px; text-align:center;'>" +
+                "<h1 style='color:#ffffff; margin:0; font-size:24px; letter-spacing:1px;'>New Job Opening</h1>" +
+                "<p style='color:#bfdbfe; margin:8px 0 0 0; font-size:14px;'>" + companyName + " — An exciting opportunity has just been posted!</p>" +
+                "</td>" +
+                "</tr>" +
+
+                // Body
+                "<tr>" +
+                "<td style='padding: 30px 40px;'>" +
+                "<p style='font-size:15px; color:#374151; margin-bottom:20px;'>" +
+                "Hi Team,<br><br>" +
+                "We're excited to announce that a <strong>new job opening</strong> has been created at " +
+                "<strong>" + companyName + "</strong>. Please find the details below:" +
+                "</p>" +
+
+                // Details Card
+                "<table width='100%' cellpadding='0' cellspacing='0' " +
+                "style='background-color:#f0f4ff; border-left: 4px solid #3b82f6; border-radius:6px; padding:0; margin-bottom:24px;'>" +
+                "<tr><td style='padding: 20px 24px;'>" +
+                "<table width='100%' cellpadding='6' cellspacing='0'>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280; width:140px;'>Role</td>" +
+                "<td style='font-size:14px; color:#111827; font-weight:bold;'>" + openings.getName() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Technology</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getTechnology() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Skills Required</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getSkill() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Experience</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getExperience() + " years</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Location</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getLocation() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Company</td>" +
+                "<td style='font-size:14px; color:#111827; font-weight:bold;'>" + companyName + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Apply Link</td>" +
+                "<td style='font-size:14px;'><a href='" + applyLink + "' style='color:#3b82f6;'>" + applyLink + "</a></td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Posted On</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + java.time.LocalDate.now() + "</td>" +
+                "</tr>" +
+
+                "</table>" +
+                "</td></tr>" +
+                "</table>" +
+
+                // Referral message
+                "<p style='font-size:14px; color:#374151; margin-bottom:16px;'>" +
+                "If you know someone who would be a great fit, share the apply link with them." +
+                "</p>" +
+
+                "<p style='font-size:14px; color:#374151; margin-bottom:24px;'>" +
+                "Let's grow our team with the best talent!" +
+                "</p>" +
+
+                "</td></tr>" +
+
+                // Footer
+                "<tr>" +
+                "<td style='background-color:#f9fafb; padding:20px 40px; text-align:center; border-top:1px solid #e5e7eb;'>" +
+                "<p style='font-size:12px; color:#9ca3af; margin:0;'>" +
+                "This is an automated notification from <strong>" + companyName + "</strong>.<br>" +
+                "Please do not reply to this email." +
+                "</p>" +
+                "</td></tr>" +
+
+                "</table>" +
+                "</td></tr>" +
+                "</table>" +
+                "</body></html>";
+
+        helper.setText(htmlContent, true);
         javaMailSender.send(message);
+    }
+
+    private String getCompanyName(String location) {
+        if (location == null) return "I-Ray IT Solutions";
+        return switch (location.trim().toLowerCase()) {
+            case "sweden" -> "I-Ray IT Solutions AB";
+            case "usa"    -> "I-Ray IT Solutions INC";
+            default       -> "I-Ray IT Solutions";
+        };
     }
 }

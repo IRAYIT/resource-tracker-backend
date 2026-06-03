@@ -110,5 +110,16 @@ public class UserServiceImpl implements UserService {
         return "Invalid OTP";
     }
 
+    @Override
+    public String setNewPassword(NewPasswordDTO dto) {
+        Credentials credentials = credentialsRepository.findByEmail(dto.getEmail());
+        if (credentials == null) {
+            throw new ResourceNotFoundException("User not found");
+        }
+        credentials.setPassword(dto.getNewPassword());
+        credentialsRepository.save(credentials);
+        return "Password set successfully";
+    }
+
 
 }

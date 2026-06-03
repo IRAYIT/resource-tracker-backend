@@ -1,9 +1,6 @@
 package com.ikonicit.resource.tracker.service;
 
-import com.ikonicit.resource.tracker.dto.ChangePasswordDTO;
-import com.ikonicit.resource.tracker.dto.ForgotPasswordDTO;
-import com.ikonicit.resource.tracker.dto.LoginDTO;
-import com.ikonicit.resource.tracker.dto.ResourceDTO;
+import com.ikonicit.resource.tracker.dto.*;
 
 public interface UserService {
 
@@ -19,4 +16,6 @@ public interface UserService {
     String sendOtp(String email);
 
     String verifyOtp(String email, String otp);
+
+    String setNewPassword(NewPasswordDTO dto);
 }

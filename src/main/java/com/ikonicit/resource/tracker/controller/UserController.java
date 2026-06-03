@@ -1,9 +1,6 @@
 package com.ikonicit.resource.tracker.controller;
 
-import com.ikonicit.resource.tracker.dto.ChangePasswordDTO;
-import com.ikonicit.resource.tracker.dto.ForgotPasswordDTO;
-import com.ikonicit.resource.tracker.dto.LoginDTO;
-import com.ikonicit.resource.tracker.dto.ResourceDTO;
+import com.ikonicit.resource.tracker.dto.*;
 import com.ikonicit.resource.tracker.entity.Credentials;
 import com.ikonicit.resource.tracker.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -106,6 +103,11 @@ public class UserController {
                                             @RequestParam String otp) {
         log.info("Verify OTP");
         return ResponseEntity.ok(userService.verifyOtp(email, otp));
+    }
+
+    @PostMapping("/setNewPassword")
+    public ResponseEntity<String> setNewPassword(@RequestBody NewPasswordDTO dto) {
+        return ResponseEntity.ok(userService.setNewPassword(dto));
     }
 
 }
