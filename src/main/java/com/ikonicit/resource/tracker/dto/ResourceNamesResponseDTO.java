@@ -8,22 +8,16 @@ import lombok.Setter;
 public class ResourceNamesResponseDTO {
 
     private Integer id;
-    private String resourceName;
+    private String  resourceName;
+    private Integer matchCount;    // how many requested skills this employee matched
+    private String  matchedSkills; // e.g. "React, TypeScript, Redux" — set by service layer
 
-    // Nullable — employees with no manager have managerId = null
-    // Frontend groupResources() handles null correctly
-    private Integer managerId;
-
-    // Set by service layer — how many requested skills this employee matched
-    // Higher = better fit — used for sorting on frontend
-    private Integer matchCount;
-
-    // Constructor used by JPQL @Query
-    // managerId is nullable via CASE WHEN — no implicit inner join
-    public ResourceNamesResponseDTO(Integer id, String resourceName, Integer managerId) {
-        this.id = id;
+    // Constructor used by JPQL @Query in ResourceRepository
+    // Signature reduced to (id, resourceName) — managerId removed
+    public ResourceNamesResponseDTO(Integer id, String resourceName) {
+        this.id           = id;
         this.resourceName = resourceName;
-        this.managerId = managerId;
-        this.matchCount = 0;
+        this.matchCount   = 0;
+        this.matchedSkills = "";
     }
 }

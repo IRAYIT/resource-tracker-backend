@@ -61,18 +61,13 @@ public interface ResourceRepository extends JpaRepository<Resource, Integer> {
      * Technology is a UI label, not a filter.
      */
     @Query(value = "SELECT new com.ikonicit.resource.tracker.dto.ResourceNamesResponseDTO(" +
-            "r.id, r.resourceName, " +
-            "CASE WHEN r.manager IS NOT NULL THEN r.manager.id ELSE null END) " +
+            "r.id, r.resourceName) " +
             "FROM Resource r " +
             "WHERE r.status != :status " +
             "AND (" +
-            // Pattern 1: exact match — only skill in the field
             "    lower(r.skill) = lower(:skill) " +
-            // Pattern 2: skill at the START — "Java, Spring Boot..."
             " OR lower(r.skill) LIKE lower(concat(:skill, ',%')) " +
-            // Pattern 3: skill in the MIDDLE — "..., Spring Boot, ..."
             " OR lower(r.skill) LIKE lower(concat('%, ', :skill, ',%')) " +
-            // Pattern 4: skill at the END — "..., Hibernate"
             " OR lower(r.skill) LIKE lower(concat('%, ', :skill)) " +
             ") " +
             "ORDER BY r.resourceName")

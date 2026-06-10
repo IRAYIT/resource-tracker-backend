@@ -23,9 +23,9 @@ public class ProjectDTO implements Serializable {
     private Date startDate;
     private Date endDate;
     private String status;
-    private String amount;
-    private String developerAmount;
-    private String totalAmount;
+//    private String amount;
+//    private String developerAmount;
+//    private String totalAmount;
     private Date createdAt;
     private String createdBy;
     private Date updatedAt;

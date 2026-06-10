@@ -39,13 +39,13 @@ public class Project implements Serializable {
 
     private String status;
 
-    private String amount;
-
-    @Column(name = "developer_amount")
-    private String developerAmount;
-
-    @Column(name = "total_amount")
-    private String totalAmount;
+//    private String amount;
+//
+//    @Column(name = "developer_amount")
+//    private String developerAmount;
+//
+//    @Column(name = "total_amount")
+//    private String totalAmount;
 
     @Column(name = "created_at")
     private Date createdAt;

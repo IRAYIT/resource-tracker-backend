@@ -125,42 +125,41 @@ public class ProjectServiceImpl implements ProjectService {
 
         String skillString = dto.getSkill();
 
-        // No skill sent — return empty, frontend will show "add skills to load developers"
         if (skillString == null || skillString.trim().isEmpty()) {
             return Collections.emptyList();
         }
 
-        // Split comma-separated skills into individual trimmed skills
-        // e.g. "Spring Boot, Hibernate, Microservices" → ["Spring Boot", "Hibernate", "Microservices"]
         List<String> skills = Arrays.stream(skillString.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .distinct()  // avoid duplicate queries if same skill sent twice
+                .distinct()
                 .collect(Collectors.toList());
 
-        // Track: employee id → DTO (for final result)
-        //        employee id → match count (for ranking)
-        Map<Integer, ResourceNamesResponseDTO> dtoMap    = new LinkedHashMap<>();
-        Map<Integer, Integer>                  matchCount = new LinkedHashMap<>();
+        Map<Integer, ResourceNamesResponseDTO> dtoMap      = new LinkedHashMap<>();
+        Map<Integer, Integer>                  matchCount  = new LinkedHashMap<>();
+        Map<Integer, List<String>>             matchedSkills = new LinkedHashMap<>(); // ← new
 
         skills.forEach(skill -> {
             List<ResourceNamesResponseDTO> results =
                     resourceRepository.findBySkill(skill, Constants.TERMINATED);
 
             results.forEach(emp -> {
-                // Store DTO (first occurrence wins for deduplication)
                 dtoMap.put(emp.getId(), emp);
-                // Increment match count for this employee
                 matchCount.merge(emp.getId(), 1, Integer::sum);
+                matchedSkills                              // ← track which skills matched
+                        .computeIfAbsent(emp.getId(), k -> new ArrayList<>())
+                        .add(skill);
             });
         });
 
-        // Set match count on each DTO and sort best fit first
         return matchCount.entrySet().stream()
                 .sorted(Map.Entry.<Integer, Integer>comparingByValue().reversed())
                 .map(entry -> {
                     ResourceNamesResponseDTO empDto = dtoMap.get(entry.getKey());
-                    empDto.setMatchCount(entry.getValue()); // sent to frontend for badge display
+                    empDto.setMatchCount(entry.getValue());
+                    empDto.setMatchedSkills(                // ← set on DTO
+                            String.join(", ", matchedSkills.get(entry.getKey()))
+                    );
                     return empDto;
                 })
                 .collect(Collectors.toList());

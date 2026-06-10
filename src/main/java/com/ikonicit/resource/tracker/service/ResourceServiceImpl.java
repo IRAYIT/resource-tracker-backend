@@ -375,7 +375,24 @@ public class ResourceServiceImpl implements ResourceService {
         BeanUtils.copyProperties(resourceDTO, resource);
         resource.setLinkedin(resourceDTO.getLinkedin());
         resource.setClient(resourceDTO.getClient());
-        resource.setAttachments(buildAttachments(resource, attachments));
+
+        // ── Attachment fix: only update attachments if real files are sent ──
+        List<MultipartFile> realAttachments = (attachments != null)
+                ? attachments.stream()
+                .filter(f -> f != null && f.getSize() > 0)
+                .collect(Collectors.toList())
+                : List.of();
+
+        if (!realAttachments.isEmpty()) {
+            // Real files uploaded → save them
+            resource.setAttachments(buildAttachments(resource, realAttachments));
+        } else {
+            // No real files → preserve existing attachments from DB
+            resourceRepository.findById(resourceDTO.getId())
+                    .ifPresent(existing -> resource.setAttachments(existing.getAttachments()));
+        }
+        // ───────────────────────────────────────────────────────────────────
+
         Credentials credentials = buildCredentials(resourceDTO.getEmail(), resourceDTO.getCreatedAt(), resourceDTO.getCreatedBy(),
                 resourceDTO.getUpdatedAt(), resourceDTO.getUpdatedBy());
         credentials.setId(resource.getId());
@@ -402,7 +419,6 @@ public class ResourceServiceImpl implements ResourceService {
         }
         return resource;
     }
-
     private List<ResourceDTO> buildResourcesDTO(List<Resource> resources) {
         List<ResourceDTO> managerResourcesDTO = new ArrayList<>();
         resources.forEach(resource -> {
