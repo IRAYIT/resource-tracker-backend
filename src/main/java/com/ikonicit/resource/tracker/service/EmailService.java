@@ -134,52 +134,100 @@ public class EmailService {
         );
         mailSender.send(message);
     }
-    public void sendRejectionEmail(String email, String name, String jobTitle, String location) {
+    public void sendStatusUpdateEmail(String email, String name, String jobTitle, String location, String status) {
 
         try {
-            String companyName;
-
-            if ("India".equalsIgnoreCase(location)) {
-                companyName = "I-Ray IT Solutions";
-            } else if ("Sweden".equalsIgnoreCase(location)) {
-                companyName = "I-Ray IT Solutions AB";
-            } else {
-                companyName = "I-Ray IT Solutions";  // default fallback
-            }
+            String companyName = "Sweden".equalsIgnoreCase(location)
+                    ? "I-Ray IT Solutions AB"
+                    : "I-Ray IT Solutions";
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(email);
-            helper.setSubject("Update on your application for " + jobTitle);
+            helper.setSubject(getEmailSubject(jobTitle, status));
+            helper.setText(buildEmailBody(name, jobTitle, companyName, status), true);
 
-            String htmlContent =
-                    "<p>Dear " + name + ",</p>" +
-
-                            "<p>Thank you for your patience while we reviewed applications for the " +
-                            "<strong>" + jobTitle + "</strong> role.</p>" +
-
-                            "<p>We truly appreciate your interest in joining <strong>" + companyName + "</strong>. " +
-                            "We know that applying takes time and effort, and we are grateful for the " +
-                            "opportunity to review your profile.</p>" +
-
-                            "<p>After careful consideration, we regret to inform you that we will be moving " +
-                            "forward with other candidates for this position.</p>" +
-
-                            "<p>However, we encourage you to keep an eye on future opportunities with us " +
-                            "that match your skills and experience.</p>" +
-
-                            "<p>We sincerely wish you all the best in your job search and future endeavors.</p>" +
-
-                            "<p>Warm regards,<br><br>" +
-                            "HR Team<br>" +
-                            "<strong>" + companyName + "</strong></p>";
-
-            helper.setText(htmlContent, true);
             mailSender.send(message);
 
         } catch (Exception e) {
-            throw new MailSendFailedException("Failed to send rejection email");
+            throw new MailSendFailedException("Failed to send status update email for status: " + status);
         }
+    }
+
+    private String getEmailSubject(String jobTitle, String status) {
+        return switch (status.toUpperCase()) {
+            case "APPLIED"     -> "We've received your application for " + jobTitle;
+            case "SHORTLISTED" -> "Great news! You've been shortlisted for " + jobTitle;
+            case "INTERVIEW"   -> "Interview Invitation – " + jobTitle;
+            case "SELECTED"    -> "Congratulations! You've been selected for " + jobTitle;
+            case "REJECTED"    -> "Update on your application for " + jobTitle;
+            default            -> "Application status update – " + jobTitle;
+        };
+    }
+
+    private String buildEmailBody(String name, String jobTitle, String companyName, String status) {
+        String bodyContent = switch (status.toUpperCase()) {
+
+            case "APPLIED" -> """
+                <p>We have successfully received your application for the
+                <strong>%s</strong> role at <strong>%s</strong>.</p>
+                <p>Our team is currently reviewing applications and we will get back
+                to you with an update soon. We appreciate your patience.</p>
+                """.formatted(jobTitle, companyName);
+
+            case "SHORTLISTED" -> """
+                <p>We are pleased to inform you that after reviewing your profile,
+                you have been <strong>shortlisted</strong> for the
+                <strong>%s</strong> role at <strong>%s</strong>.</p>
+                <p>Our team will be in touch shortly with the next steps in the
+                selection process. Please keep an eye on your inbox.</p>
+                """.formatted(jobTitle, companyName);
+
+            case "INTERVIEW" -> """
+                <p>We are excited to invite you for an <strong>interview</strong>
+                for the <strong>%s</strong> role at <strong>%s</strong>.</p>
+                <p>Our HR team will reach out to you shortly with the interview
+                schedule and further details. Please ensure your contact information
+                is up to date.</p>
+                """.formatted(jobTitle, companyName);
+
+            case "SELECTED" -> """
+                <p>We are thrilled to inform you that you have been
+                <strong>selected</strong> for the <strong>%s</strong> role at
+                <strong>%s</strong>!</p>
+                <p>This is a testament to your skills and experience, and we are
+                excited to welcome you to the team. Our HR team will be in touch
+                very soon with the next steps, including onboarding details.</p>
+                """.formatted(jobTitle, companyName);
+
+            case "REJECTED" -> """
+                <p>Thank you for your patience while we reviewed applications for
+                the <strong>%s</strong> role.</p>
+                <p>We truly appreciate your interest in joining
+                <strong>%s</strong> and the time and effort you invested in
+                your application.</p>
+                <p>After careful consideration, we regret to inform you that we
+                will be moving forward with other candidates for this position.
+                We encourage you to keep an eye on future opportunities with us
+                that match your skills and experience.</p>
+                <p>We sincerely wish you all the best in your job search and
+                future endeavors.</p>
+                """.formatted(jobTitle, companyName);
+
+            default -> """
+                <p>There has been an update to your application for the
+                <strong>%s</strong> role at <strong>%s</strong>.</p>
+                <p>Please contact our HR team for further details.</p>
+                """.formatted(jobTitle, companyName);
+        };
+
+        return """
+            <p>Dear %s,</p>
+            %s
+            <p>Warm regards,<br><br>
+            HR Team<br>
+            <strong>%s</strong></p>
+            """.formatted(name, bodyContent, companyName);
     }
 }

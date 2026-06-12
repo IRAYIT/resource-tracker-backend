@@ -455,18 +455,16 @@ public class CandidateServiceImpl implements CandidateService {
 
         candidateRepository.save(candidate);
 
-        if ("REJECTED".equalsIgnoreCase(applicationStatus)) {
-
-            try {
-                emailService.sendRejectionEmail(
-                        candidate.getEmail(),
-                        candidate.getFirstName(),
-                        candidate.getOpening().getName(),
-                        candidate.getOpening().getLocation()
-                );
-            } catch (Exception e) {
-                log.error("Failed to send rejection email", e);
-            }
+        try {
+            emailService.sendStatusUpdateEmail(
+                    candidate.getEmail(),
+                    candidate.getFirstName(),
+                    candidate.getOpening().getName(),
+                    candidate.getOpening().getLocation(),
+                    applicationStatus
+            );
+        } catch (Exception e) {
+            log.error("Failed to send status update email for status: {}", applicationStatus, e);
         }
     }
 

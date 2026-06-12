@@ -128,6 +128,15 @@ public class ResourceServiceImpl implements ResourceService {
             throw new RuntimeException("Email Already Exists");
         }
 
+        // Auto-generate unique resourceName — never block on duplicate names
+        String baseName = resourceDTO.getFirstName() + "_" + resourceDTO.getLastName();
+        long count = resourceRepository.countByResourceName(baseName);
+        if (count == 0) {
+            resourceDTO.setResourceName(baseName);
+        } else {
+            resourceDTO.setResourceName(baseName + "_" + (count + 1));
+        }
+
         Resource resource = resourceRepository.save(createResource(resourceDTO, attachments));
 
         if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 3) {
@@ -136,7 +145,6 @@ public class ResourceServiceImpl implements ResourceService {
 
         return buildResourceDTO(resource);
     }
-
     /**
      * Updates the resource.
      */
@@ -310,11 +318,11 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public String checkResourceName(String resourceName) {
-        Resource resource = resourceRepository.findByResourceName(resourceName);
-        if (isNull.test(resource)) {
-            return "ResourceName Available";
+        long count = resourceRepository.countByResourceName(resourceName);
+        if (count > 0) {
+            return "ResourceName Already Exists";
         }
-        return "ResourceName Already Exists";
+        return "ResourceName Available";
     }
 
     @Override
