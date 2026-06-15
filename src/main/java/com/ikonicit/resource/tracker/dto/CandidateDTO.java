@@ -66,5 +66,4 @@ public class CandidateDTO {
 
     private Boolean retainCvForFuture;
 
-    private LocalDateTime createdAt;
 }
