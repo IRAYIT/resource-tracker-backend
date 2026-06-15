@@ -48,12 +48,13 @@ public interface CandidateRepository extends JpaRepository<Candidate_Openings, L
             "c.applicationStatus, " +
             "c.source, " +
             "c.employmentType, " +
-            "c.retainCvForFuture" +
+            "c.retainCvForFuture, " +
+            "c.createdAt" +   // ← added
 
             ") " +
             "FROM Candidate_Openings c " +
             "LEFT JOIN c.attachments a " +
-            "ORDER BY c.firstName ASC")
+            "ORDER BY c.createdAt DESC")   // ← changed from firstName ASC
     List<CandidateDTO> getAllCandidatesWithAttachments();
 
     @Query("SELECT COUNT(c) FROM Candidate_Openings c WHERE c.opening.id = :openingId")

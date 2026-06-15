@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -62,9 +64,7 @@ public class CandidateDTO {
 
     private String employmentType;
 
-    /**
-     * Whether the candidate consented to keeping their CV for future openings.
-     * Sent from the application form and persisted on the candidate record.
-     */
     private Boolean retainCvForFuture;
+
+    private LocalDateTime createdAt;
 }

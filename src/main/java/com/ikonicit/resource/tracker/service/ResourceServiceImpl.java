@@ -174,7 +174,7 @@ public class ResourceServiceImpl implements ResourceService {
             assignEmployeesToManager(resource.getId(), resourceDTO.getAssignedResourceIds());
         }
 
-        buildUpdateEmail(resourceDTO, source);
+//        buildUpdateEmail(resourceDTO, source);
         return buildResourceDTO(resource);
     }
 
@@ -392,18 +392,29 @@ public class ResourceServiceImpl implements ResourceService {
                 : List.of();
 
         if (!realAttachments.isEmpty()) {
-            // Real files uploaded → save them
             resource.setAttachments(buildAttachments(resource, realAttachments));
-        } else {
-            // No real files → preserve existing attachments from DB
+        } else if (resourceDTO.getId() != null) {  // ← only on UPDATE
             resourceRepository.findById(resourceDTO.getId())
                     .ifPresent(existing -> resource.setAttachments(existing.getAttachments()));
         }
-        // ───────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────
 
-        Credentials credentials = buildCredentials(resourceDTO.getEmail(), resourceDTO.getCreatedAt(), resourceDTO.getCreatedBy(),
-                resourceDTO.getUpdatedAt(), resourceDTO.getUpdatedBy());
-        credentials.setId(resource.getId());
+// ── Credentials fix ──
+        Optional<Resource> existingResource = resourceDTO.getId() != null  // ← only on UPDATE
+                ? resourceRepository.findById(resourceDTO.getId())
+                : Optional.empty();
+
+        Credentials credentials;
+        if (existingResource.isPresent() && existingResource.get().getCredentials() != null) {
+            credentials = existingResource.get().getCredentials();
+            credentials.setEmail(resourceDTO.getEmail());
+            credentials.setUpdatedAt(resourceDTO.getUpdatedAt());
+            credentials.setUpdatedBy(resourceDTO.getUpdatedBy());
+        } else {
+            credentials = buildCredentials(resourceDTO.getEmail(), resourceDTO.getCreatedAt(), resourceDTO.getCreatedBy(),
+                    resourceDTO.getUpdatedAt(), resourceDTO.getUpdatedBy());
+            credentials.setId(resource.getId());
+        }
         resource.setCredentials(credentials);
         credentials.setResource(resource);
         Permission permission = permissionObjectFactory.getObject();

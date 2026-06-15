@@ -85,7 +85,7 @@ public class OpeningsServiceImpl implements OpeningsService {
         openings = openingsRepository.save(openings);
 
         if (openingsEmailEnabled) {
-           newOpeningEmail(openings);
+//           newOpeningEmail(openings);
         }
 
         return buildOpeningsDTO(openings);

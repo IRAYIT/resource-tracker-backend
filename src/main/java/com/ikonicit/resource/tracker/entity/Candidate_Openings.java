@@ -39,7 +39,7 @@ public class Candidate_Openings {
 
     private LocalDateTime createdAt;
 
-    @Column(name = "skills")
+    @Column(name = "skills", columnDefinition = "TEXT")
     private String skills;
 
     @Column(name = "languages_known")
@@ -61,7 +61,7 @@ public class Candidate_Openings {
     @Column(name = "match_percentage")
     private Double matchPercentage;
 
-    @Column(name = "matched_skills")
+    @Column(name = "matched_skills", columnDefinition = "TEXT")
     private String matchedSkills;
 
     private String employmentType;
