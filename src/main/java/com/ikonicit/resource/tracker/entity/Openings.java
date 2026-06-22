@@ -28,14 +28,13 @@ public class Openings implements Serializable {
 
     private String name;
 
-    private String hours;
+    // private String hours;
+    // @Column(name = "shift_timings")
+    // private String shiftTimings;
 
-    @Column(name = "shift_timings")
-    private String shiftTimings;
+    // private String payment;
 
-    private String payment;
-
-    private String paymentType;
+    // private String paymentType;
 
     private String technology;
 
@@ -45,8 +44,8 @@ public class Openings implements Serializable {
 
     private String location;
 
-    @Column(name = "employementtype")
-    private String employmentType;
+    // @Column(name = "employementtype")
+    // private String employmentType;
 
     @Column(name = "start_date")
     private String startDate;
@@ -72,11 +71,7 @@ public class Openings implements Serializable {
 
     @Column(name = "public_url_key")
     private String publicUrlKey;
-    
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-
-
 }
-
-

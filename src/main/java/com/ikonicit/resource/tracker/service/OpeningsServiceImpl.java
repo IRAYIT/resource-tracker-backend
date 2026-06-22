@@ -235,15 +235,15 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
 
         dto.setId(openings.getId());
         dto.setName(openings.getName());
-        dto.setHours(openings.getHours());
-        dto.setShiftTimings(openings.getShiftTimings());
-        dto.setPayment(openings.getPayment());
-        dto.setPaymentType(openings.getPaymentType());
+//        dto.setHours(openings.getHours());
+//        dto.setShiftTimings(openings.getShiftTimings());
+//        dto.setPayment(openings.getPayment());
+//        dto.setPaymentType(openings.getPaymentType());
         dto.setTechnology(openings.getTechnology());
         dto.setSkill(openings.getSkill());
         dto.setExperience(openings.getExperience());
         dto.setLocation(openings.getLocation());
-        dto.setEmploymentType(openings.getEmploymentType());
+//        dto.setEmploymentType(openings.getEmploymentType());
         dto.setStartDate(openings.getStartDate());
         dto.setEndDate(openings.getEndDate());
         dto.setStatus(openings.getStatus());

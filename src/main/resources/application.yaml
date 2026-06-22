@@ -7,9 +7,9 @@ management:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/RESOURCES
-    username: postgres
-    password: Dev@12345!
+    url: jdbc:postgresql://pg-5bdffa4-candidate-tracker.a.aivencloud.com:22880/defaultdb?sslmode=require
+    username: avnadmin
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   openingsEmailEnabled: true
@@ -17,7 +17,7 @@ spring:
   mail:
     host: smtp.gmail.com
     username: no-reply@i-raysolutions.com
-    password: fqho npwe bqmh reaz
+    password: ${MAIL_PASSWORD}
     port: 587
     properties:
       mail:

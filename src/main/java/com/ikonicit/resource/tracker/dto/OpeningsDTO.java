@@ -19,13 +19,13 @@ public class OpeningsDTO implements Serializable {
 
     private String name;
 
-    private String hours;
+    // private String hours;
 
-    private String shiftTimings;
+    // private String shiftTimings;
 
-    private String payment;
+    // private String payment;
 
-    private String paymentType;
+    // private String paymentType;
 
     private String technology;
 
@@ -35,7 +35,7 @@ public class OpeningsDTO implements Serializable {
 
     private String location;
 
-    private String employmentType;
+    // private String employmentType;     // Removed by HR
 
     private String startDate;
 
