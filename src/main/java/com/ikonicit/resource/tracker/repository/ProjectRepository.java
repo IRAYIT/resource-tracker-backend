@@ -10,9 +10,18 @@ import java.util.List;
 
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Integer> {
+
     List<Project> findByStatusNotOrderByIdDesc(String status);
-   
-    List<Project> findByResourceIdAndStatusNot(Integer resourceId,String status);
+
+    // ✅ Updated: traverse project → projectRoles → resources
+    @Query("SELECT DISTINCT p FROM Project p " +
+            "JOIN p.projectRoles pr " +
+            "JOIN pr.resources r " +
+            "WHERE r.id = :resourceId AND p.status != :status")
+    List<Project> findByResourceIdAndStatusNot(
+            @Param("resourceId") Integer resourceId,
+            @Param("status") String status
+    );
 
     boolean existsByName(String name);
 }

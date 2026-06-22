@@ -18,7 +18,4 @@ public class CredentialsDTO implements Serializable {
 	    private String createdBy;
 	    private Date updatedAt;
 	    private String updatedBy;
-	
-	    
-	    
 }

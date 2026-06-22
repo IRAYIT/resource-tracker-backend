@@ -15,20 +15,46 @@ public interface CandidateRepository extends JpaRepository<Candidate_Openings, L
     boolean existsByEmailAndOpeningId(String email, Integer openingId);
 
     @Query("SELECT new com.ikonicit.resource.tracker.dto.CandidateDTO(" +
-            "c.id, c.firstName, c.lastName, c.email, c.phone, c.experience, " +
+            "c.id, " +
+            "c.firstName, " +
+            "c.lastName, " +
+            "c.email, " +
+            "c.phone, " +
+            "c.experience, " +
+
+            "c.currentSalaryCurrency, " +
+            "c.currentSalary, " +
+
             "c.expectedSalaryCurrency, " +
-            "c.expectedSalary," +
-           "c.currentSalaryCurrency, " +
-            "c.currentSalary," +
-            " c.location, c.languagesKnown, c.noticePeriod, " +
+            "c.expectedSalary, " +
+
+            "c.location, " +
+            "c.skills, " +
+            "c.languagesKnown, " +
+            "c.noticePeriod, " +
             "c.visaStatus, " +
-            "null, null, null, " +
-            "a.cvName, a.cvType, a.coverLetterName, a.coverLetterType, " +
-            "a.additionalDocumentName, a.additionalDocumentType, " +
-            "c.applicationStatus, c.source, c.employmentType) " +
+
+            "null, " +   // cv
+            "null, " +   // coverLetter
+            "null, " +   // additionalDocuments
+
+            "a.cvName, " +
+            "a.cvType, " +
+            "a.coverLetterName, " +
+            "a.coverLetterType, " +
+            "a.additionalDocumentName, " +
+            "a.additionalDocumentType, " +
+
+            "c.applicationStatus, " +
+            "c.source, " +
+            "c.employmentType, " +
+            "c.retainCvForFuture " +
+            // ← added
+
+            ") " +
             "FROM Candidate_Openings c " +
             "LEFT JOIN c.attachments a " +
-            "ORDER BY c.firstName ASC")
+            "ORDER BY c.firstName ASC")   // ← changed from firstName ASC
     List<CandidateDTO> getAllCandidatesWithAttachments();
 
     @Query("SELECT COUNT(c) FROM Candidate_Openings c WHERE c.opening.id = :openingId")

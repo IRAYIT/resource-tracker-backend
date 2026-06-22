@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,6 +31,8 @@ public class CandidateDTO {
     private String expectedSalary;
 
     private String location;
+
+    private String skills;
 
     private String languagesKnown;
 
@@ -60,6 +64,6 @@ public class CandidateDTO {
 
     private String employmentType;
 
-
+    private Boolean retainCvForFuture;
 
 }

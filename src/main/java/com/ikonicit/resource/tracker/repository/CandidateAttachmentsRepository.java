@@ -10,5 +10,5 @@ public interface CandidateAttachmentsRepository extends JpaRepository<CandidateA
 
     Optional<CandidateAttachments> findByCandidateOpenings(Candidate_Openings candidate);
 
-    Optional<CandidateAttachments> findByCandidateOpeningsId(Long candidateId);
+    Optional<CandidateAttachments> findByCandidateOpenings_Id(Long id);
 }

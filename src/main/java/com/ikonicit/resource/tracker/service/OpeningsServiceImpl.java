@@ -13,11 +13,14 @@ import com.ikonicit.resource.tracker.repository.CandidateRepository;
 import com.ikonicit.resource.tracker.repository.OpeningsRepository;
 import com.ikonicit.resource.tracker.repository.ResourceRepository;
 import com.ikonicit.resource.tracker.utils.Constants;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import java.util.Objects;
 
@@ -51,6 +54,10 @@ public class OpeningsServiceImpl implements OpeningsService {
     @Value("${spring.openingsEmailEnabled}")
     private Boolean openingsEmailEnabled;
 
+
+    @Value("${spring.mail.username}")
+    private String mailUsername;
+
     public OpeningsServiceImpl(OpeningsRepository openingsRepository) {
         this.openingsRepository = openingsRepository;
         log.info("object created for repository {}", openingsRepository);
@@ -61,7 +68,9 @@ public class OpeningsServiceImpl implements OpeningsService {
 
         Openings openings = buildOpenings(openingsDTO);
 
-        // ✅ FIX: manually set relationships
+        openings.setStatus("ACTIVE");
+
+
         Resource createdBy = resourceRepository.findById(openingsDTO.getCreatedBy())
                 .orElseThrow(() -> new RuntimeException("HR not found"));
 
@@ -71,13 +80,12 @@ public class OpeningsServiceImpl implements OpeningsService {
         openings.setCreatedBy(createdBy);
         openings.setUpdatedBy(updatedBy);
 
-        // generate public key
         openings.setPublicUrlKey(generatePublicKey());
 
         openings = openingsRepository.save(openings);
 
         if (openingsEmailEnabled) {
-           newOpeningEmail(openings);
+//           newOpeningEmail(openings);
         }
 
         return buildOpeningsDTO(openings);
@@ -104,7 +112,6 @@ public class OpeningsServiceImpl implements OpeningsService {
 
         Openings openings = buildOpenings(openingsDTO);
 
-        // ✅ manually set relationships
         Resource createdBy = resourceRepository.findById(openingsDTO.getCreatedBy())
                 .orElseThrow(() -> new RuntimeException("HR not found"));
 
@@ -192,6 +199,10 @@ public class OpeningsServiceImpl implements OpeningsService {
 //        }
 //    }
 
+public List<OpeningsResponseDTO> getAllOpenings() {
+    return buildOpeningsDTOList(openingsRepository.findAllByOrderByIdDesc());
+}
+
 private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) {
     List<OpeningsResponseDTO> openingsDTOS = new ArrayList<>();
     openings.forEach(opening -> {
@@ -201,7 +212,6 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
 }
 
     private Openings buildOpenings(OpeningsDTO dto) {
-        dto.setStatus("ACTIVE");
 
         Integer createdBy = dto.getCreatedBy();
         Integer updatedBy = dto.getUpdatedBy();
@@ -277,16 +287,12 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
     }
 
     private void newOpeningEmail(Openings openings) {
-
         try {
-
             Integer creatorId = openings.getCreatedBy().getId();
 
-            // 🎯 Fetch HR + Manager + Employee in ONE query
             List<Resource> users = resourceRepository
-                    .findAllByPermissionIdInAndStatus(List.of(1, 2, 3), "ACTIVE");
+                    .findAllByPermissionIdInAndStatus(List.of(1, 2, 3, 4), "ACTIVE");
 
-            // 🎯 Filter emails (exclude creator)
             List<String> emails = users.stream()
                     .filter(r -> r.getId() != null && !r.getId().equals(creatorId))
                     .map(Resource::getEmail)
@@ -299,30 +305,155 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
                 return;
             }
 
-            // 🎯 Send email
-            SimpleMailMessage message = new SimpleMailMessage();
+            // ✅ Send in batches of 50
+            int batchSize = 50;
+            int totalBatches = (int) Math.ceil((double) emails.size() / batchSize);
 
-            message.setTo(emails.toArray(new String[0]));
-            // OR better:
-            // message.setBcc(emails.toArray(new String[0]));
+            for (int i = 0; i < emails.size(); i += batchSize) {
+                List<String> batch = emails.subList(i, Math.min(i + batchSize, emails.size()));
+                sendBatch(openings, batch);
 
-            message.setSubject("New Job Opening: " + openings.getName());
+                log.info("Sent batch {}/{}", (i / batchSize) + 1, totalBatches);
 
-            message.setText(
-                    "A new job opening has been created.\n\n" +
-                            "Role: " + openings.getName() + "\n" +
-                            "Technology: " + openings.getTechnology() + "\n" +
-                            "Skills: " + openings.getSkill() + "\n" +
-                            "Experience: " + openings.getExperience()
-            );
+                // ✅ Fix
+                if (i + batchSize < emails.size()) {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.warn("Batch email interrupted");
+                        break;
+                    }
+                }
+            }
 
-            javaMailSender.send(message);
-            log.info("Email sent successfully");
+            log.info("Opening email sent successfully to {} recipients", emails.size());
 
         } catch (Exception e) {
             log.error("Error sending opening email", e);
-            // Don't throw — opening is already saved, just log the email failure
         }
     }
 
+    private void sendBatch(Openings openings, List<String> batch) throws MessagingException {
+        MimeMessage message = javaMailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        String companyName = getCompanyName(openings.getLocation());
+        String applyLink = "http://localhost:3000/jobs/apply/" + openings.getPublicUrlKey();
+
+        helper.setFrom(mailUsername);
+        helper.setTo(mailUsername);
+        helper.setBcc(batch.toArray(new String[0]));
+        helper.setSubject("New Job Opening at " + companyName + ": " + openings.getName());
+
+        String htmlContent = "<html>" +
+                "<body style='margin:0; padding:0; font-family: Arial, sans-serif; background-color: #f4f6f9;'>" +
+                "<table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f4f6f9; padding: 30px 0;'>" +
+                "<tr><td align='center'>" +
+                "<table width='600' cellpadding='0' cellspacing='0' style='background-color:#ffffff; border-radius:10px; overflow:hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>" +
+
+                // Header
+                "<tr>" +
+                "<td style='background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 30px 40px; text-align:center;'>" +
+                "<h1 style='color:#ffffff; margin:0; font-size:24px; letter-spacing:1px;'>New Job Opening</h1>" +
+                "<p style='color:#bfdbfe; margin:8px 0 0 0; font-size:14px;'>" + companyName + " — An exciting opportunity has just been posted!</p>" +
+                "</td>" +
+                "</tr>" +
+
+                // Body
+                "<tr>" +
+                "<td style='padding: 30px 40px;'>" +
+                "<p style='font-size:15px; color:#374151; margin-bottom:20px;'>" +
+                "Hi Team,<br><br>" +
+                "We're excited to announce that a <strong>new job opening</strong> has been created at " +
+                "<strong>" + companyName + "</strong>. Please find the details below:" +
+                "</p>" +
+
+                // Details Card
+                "<table width='100%' cellpadding='0' cellspacing='0' " +
+                "style='background-color:#f0f4ff; border-left: 4px solid #3b82f6; border-radius:6px; padding:0; margin-bottom:24px;'>" +
+                "<tr><td style='padding: 20px 24px;'>" +
+                "<table width='100%' cellpadding='6' cellspacing='0'>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280; width:140px;'>Role</td>" +
+                "<td style='font-size:14px; color:#111827; font-weight:bold;'>" + openings.getName() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Technology</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getTechnology() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Skills Required</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getSkill() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Experience</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getExperience() + " years</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Location</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + openings.getLocation() + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Company</td>" +
+                "<td style='font-size:14px; color:#111827; font-weight:bold;'>" + companyName + "</td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Apply Link</td>" +
+                "<td style='font-size:14px;'><a href='" + applyLink + "' style='color:#3b82f6;'>" + applyLink + "</a></td>" +
+                "</tr>" +
+
+                "<tr>" +
+                "<td style='font-size:13px; color:#6b7280;'>Posted On</td>" +
+                "<td style='font-size:14px; color:#111827;'>" + java.time.LocalDate.now() + "</td>" +
+                "</tr>" +
+
+                "</table>" +
+                "</td></tr>" +
+                "</table>" +
+
+                // Referral message
+                "<p style='font-size:14px; color:#374151; margin-bottom:16px;'>" +
+                "If you know someone who would be a great fit, share the apply link with them." +
+                "</p>" +
+
+                "<p style='font-size:14px; color:#374151; margin-bottom:24px;'>" +
+                "Let's grow our team with the best talent!" +
+                "</p>" +
+
+                "</td></tr>" +
+
+                // Footer
+                "<tr>" +
+                "<td style='background-color:#f9fafb; padding:20px 40px; text-align:center; border-top:1px solid #e5e7eb;'>" +
+                "<p style='font-size:12px; color:#9ca3af; margin:0;'>" +
+                "This is an automated notification from <strong>" + companyName + "</strong>.<br>" +
+                "Please do not reply to this email." +
+                "</p>" +
+                "</td></tr>" +
+
+                "</table>" +
+                "</td></tr>" +
+                "</table>" +
+                "</body></html>";
+
+        helper.setText(htmlContent, true);
+        javaMailSender.send(message);
+    }
+
+    private String getCompanyName(String location) {
+        if (location == null) return "I-Ray IT Solutions";
+        return switch (location.trim().toLowerCase()) {
+            case "sweden" -> "I-Ray IT Solutions AB";
+            case "usa"    -> "I-Ray IT Solutions INC";
+            default       -> "I-Ray IT Solutions";
+        };
+    }
 }

@@ -25,4 +25,6 @@ public interface OpeningsService {
     List<OpeningsResponseDTO> createOpenings(List<OpeningsDTO> openingsDTO);
 
     OpeningsResponseDTO getOpeningByPublicUrlKey(String publicUrlKey);
+
+    List<OpeningsResponseDTO> getAllOpenings();
 }

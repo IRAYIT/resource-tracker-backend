@@ -1,9 +1,7 @@
 package com.ikonicit.resource.tracker.controller;
 
-import com.ikonicit.resource.tracker.dto.ChangePasswordDTO;
-import com.ikonicit.resource.tracker.dto.ForgotPasswordDTO;
-import com.ikonicit.resource.tracker.dto.LoginDTO;
-import com.ikonicit.resource.tracker.dto.ResourceDTO;
+import com.ikonicit.resource.tracker.dto.*;
+import com.ikonicit.resource.tracker.entity.Credentials;
 import com.ikonicit.resource.tracker.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -89,4 +87,27 @@ public class UserController {
         log.info("Forgot Password");
         return ResponseEntity.ok(userService.forgotPassword(forgotPasswordDTO));
     }
+    @GetMapping("/checkEmail")
+    public ResponseEntity<Boolean> checkEmail(@RequestParam String email) {
+        return ResponseEntity.ok(userService.checkEmail(email));
+    }
+
+    @PostMapping("/sendOtp")
+    public ResponseEntity<String> sendOtp(@RequestParam String email) {
+        log.info("Send OTP");
+        return ResponseEntity.ok(userService.sendOtp(email));
+    }
+
+    @PostMapping("/verifyOtp")
+    public ResponseEntity<String> verifyOtp(@RequestParam String email,
+                                            @RequestParam String otp) {
+        log.info("Verify OTP");
+        return ResponseEntity.ok(userService.verifyOtp(email, otp));
+    }
+
+    @PostMapping("/setNewPassword")
+    public ResponseEntity<String> setNewPassword(@RequestBody NewPasswordDTO dto) {
+        return ResponseEntity.ok(userService.setNewPassword(dto));
+    }
+
 }

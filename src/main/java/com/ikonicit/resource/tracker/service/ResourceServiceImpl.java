@@ -37,6 +37,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.management.RuntimeMBeanException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.ParseException;
@@ -112,10 +114,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     /**
      * Creates the resource.
-     *
-     * @param attachments it can be resource CV or Cover Letter
-     * @param payload     it has all the fields to create resource and converted into string
-     * @return ResourceDTO it returns the created resource properties
      */
     @Override
     @Caching(evict = {@CacheEvict(value = "resource", allEntries = true),
@@ -125,20 +123,30 @@ public class ResourceServiceImpl implements ResourceService {
             @CacheEvict(value = "managerResources", allEntries = true)})
     public ResourceDTO create(List<MultipartFile> attachments, String payload) throws AddressException {
         ResourceDTO resourceDTO = getResourceDTO(payload);
+
+        if (resourceRepository.existsByEmail(resourceDTO.getEmail())) {
+            throw new RuntimeException("Email Already Exists");
+        }
+
+        // Auto-generate unique resourceName — never block on duplicate names
+        String baseName = resourceDTO.getFirstName() + "_" + resourceDTO.getLastName();
+        long count = resourceRepository.countByResourceName(baseName);
+        if (count == 0) {
+            resourceDTO.setResourceName(baseName);
+        } else {
+            resourceDTO.setResourceName(baseName + "_" + (count + 1));
+        }
+
         Resource resource = resourceRepository.save(createResource(resourceDTO, attachments));
-        if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 2) {
+
+        if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 3) {
             assignEmployeesToManager(resource.getId(), resourceDTO.getAssignedResourceIds());
         }
-        return sendEmailToResource(resource);
-    }
 
+        return buildResourceDTO(resource);
+    }
     /**
      * Updates the resource.
-     *
-     * @param attachments it can be resource CV or Cover Letter
-     * @param payload     it has all the fields to update resource and converted into string
-     * @return ResourceDTO it returns the updated resource properties
-     * @throws ParseException
      */
     @Override
     @Caching(evict = {@CacheEvict(value = "resource", allEntries = true),
@@ -153,23 +161,29 @@ public class ResourceServiceImpl implements ResourceService {
         if (resourceOptional.isPresent()) {
             source = buildResourceDTO(resourceOptional.get());
         }
-        Resource resource = resourceRepository.save(createResource(resourceDTO, attachments));
-        if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 2) {
+
+        List<MultipartFile> safeAttachments = (attachments != null) ? attachments : List.of();
+
+        Resource resource = resourceRepository.save(createResource(resourceDTO, safeAttachments));
+
+        if (resourceDTO.getPermissionId() != null && resourceDTO.getPermissionId() == 3) {
+            // ── On update: first unlink all current employees of this manager,
+            //    then re-link only the ones sent in this request.
+            //    This handles removals correctly.
+            unlinkAllEmployeesFromManager(resource.getId());
             assignEmployeesToManager(resource.getId(), resourceDTO.getAssignedResourceIds());
         }
-        buildUpdateEmail(resourceDTO, source);
+
+//        buildUpdateEmail(resourceDTO, source);
         return buildResourceDTO(resource);
     }
 
 
     /**
      * Get the resource.
-     *
-     * @param id resourceId used to get the resource
-     * @return ResourceDTO it returns the given resource by id
      */
     @Override
-    @Cacheable("resource")
+    @Cacheable(value = "resource", key = "#id")
     public ResourceDTO getResource(Integer id) {
         Optional<Resource> resourceOptional = resourceRepository.findById(id);
         if (!resourceOptional.isPresent()) {
@@ -180,8 +194,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     /**
      * List of resources.
-     *
-     * @return List<ResourceDTO> it returns the list of resources
      */
     @Override
     @Cacheable("resources")
@@ -196,9 +208,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     /**
      * Delete the resource.
-     *
-     * @param id resourceId used to delete the resource
-     * @return boolean it returns the true if resource deleted
      */
     @Override
     @Caching(evict = {@CacheEvict(value = "resource", allEntries = true),
@@ -221,12 +230,9 @@ public class ResourceServiceImpl implements ResourceService {
 
     /**
      * Get all resources By Manager.
-     *
-     * @param managerId used to get the resources by managerId
-     * @return List<ResourceDTO> it returns the list of resources of given manager
      */
     @Override
-    @Cacheable("managerResources")
+    @Cacheable(value = "managerResources", key = "#managerId")
     public List<ResourceDTO> resourcesByManager(Integer managerId) {
         List<Resource> managerResources = resourceRepository.findByManagerIdAndStatusNotOrderByIdDesc(managerId, "TERMINATED");
         if (!managerResources.isEmpty()) {
@@ -242,7 +248,7 @@ public class ResourceServiceImpl implements ResourceService {
         return unassignedResources.stream()
                 .map(resource -> {
                     ResourceDTO resourceDTO = new ResourceDTO();
-                    BeanUtils.copyProperties(resource,resourceDTO);
+                    BeanUtils.copyProperties(resource, resourceDTO);
                     resourceDTO.setPermissionId(resource.getPermission().getId());
                     return resourceDTO;
                 }).toList();
@@ -258,12 +264,22 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
+    /**
+     * Unlinks all employees currently assigned to a manager.
+     * Called before re-assigning on update so removals are handled correctly.
+     */
+    private void unlinkAllEmployeesFromManager(Integer managerId) {
+        List<Resource> currentEmployees = resourceRepository
+                .findByManagerIdAndStatusNotOrderByIdDesc(managerId, "TERMINATED");
+        for (Resource employee : currentEmployees) {
+            employee.setManager(null);
+        }
+        resourceRepository.saveAll(currentEmployees);
+    }
+
 
     /**
      * Get ResourceAttachment by attachmentId
-     *
-     * @param attachmentId used to get the attachment
-     * @return ResourceAttachments it returns the attachment
      */
     @Override
     @Cacheable("resourceAttachment")
@@ -278,8 +294,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     /**
      * Get allManagers
-     *
-     * @return List<ResourceDTO> it returns all resources
      */
     @Override
     @Cacheable("managers")
@@ -304,11 +318,11 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public String checkResourceName(String resourceName) {
-        Resource resource = resourceRepository.findByResourceName(resourceName);
-        if (isNull.test(resource)) {
-            return "ResourceName Available";
+        long count = resourceRepository.countByResourceName(resourceName);
+        if (count > 0) {
+            return "ResourceName Already Exists";
         }
-        return "ResourceName Already Exists";
+        return "ResourceName Available";
     }
 
     @Override
@@ -316,7 +330,7 @@ public class ResourceServiceImpl implements ResourceService {
         String msg = "";
         if (openingsEmailEnabled) {
             if (sendEmailDTO.getIsTrue()) {
-              List<String> emails = resourceRepository.findEmails(Constants.TERMINATED);
+                List<String> emails = resourceRepository.findEmails(Constants.TERMINATED);
                 if (!emails.isEmpty() && isNotNull.test(emails)) {
                     String subject = sendEmailDTO.getSubject();
                     String emailBody = sendEmailDTO.getEmailBody();
@@ -325,8 +339,7 @@ public class ResourceServiceImpl implements ResourceService {
                     });
                 }
                 msg = "Mail Sent to all Resources";
-            }
-            else {
+            } else {
                 sendMail(sendEmailDTO.getEmail(), sendEmailDTO.getSubject(),
                         sendEmailDTO.getEmailBody());
                 msg = "Mail Sent";
@@ -370,10 +383,38 @@ public class ResourceServiceImpl implements ResourceService {
         BeanUtils.copyProperties(resourceDTO, resource);
         resource.setLinkedin(resourceDTO.getLinkedin());
         resource.setClient(resourceDTO.getClient());
-        resource.setAttachments(buildAttachments(resource, attachments));
-        Credentials credentials = buildCredentials(resourceDTO.getEmail(), resourceDTO.getCreatedAt(), resourceDTO.getCreatedBy(),
-                resourceDTO.getUpdatedAt(), resourceDTO.getUpdatedBy());
-        credentials.setId(resource.getId());
+
+        // ── Attachment fix: only update attachments if real files are sent ──
+        List<MultipartFile> realAttachments = (attachments != null)
+                ? attachments.stream()
+                .filter(f -> f != null && f.getSize() > 0)
+                .collect(Collectors.toList())
+                : List.of();
+
+        if (!realAttachments.isEmpty()) {
+            resource.setAttachments(buildAttachments(resource, realAttachments));
+        } else if (resourceDTO.getId() != null) {  // ← only on UPDATE
+            resourceRepository.findById(resourceDTO.getId())
+                    .ifPresent(existing -> resource.setAttachments(existing.getAttachments()));
+        }
+// ───────────────────────────────────────────────────────────────────
+
+// ── Credentials fix ──
+        Optional<Resource> existingResource = resourceDTO.getId() != null  // ← only on UPDATE
+                ? resourceRepository.findById(resourceDTO.getId())
+                : Optional.empty();
+
+        Credentials credentials;
+        if (existingResource.isPresent() && existingResource.get().getCredentials() != null) {
+            credentials = existingResource.get().getCredentials();
+            credentials.setEmail(resourceDTO.getEmail());
+            credentials.setUpdatedAt(resourceDTO.getUpdatedAt());
+            credentials.setUpdatedBy(resourceDTO.getUpdatedBy());
+        } else {
+            credentials = buildCredentials(resourceDTO.getEmail(), resourceDTO.getCreatedAt(), resourceDTO.getCreatedBy(),
+                    resourceDTO.getUpdatedAt(), resourceDTO.getUpdatedBy());
+            credentials.setId(resource.getId());
+        }
         resource.setCredentials(credentials);
         credentials.setResource(resource);
         Permission permission = permissionObjectFactory.getObject();
@@ -381,11 +422,7 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setPermission(permission);
         resource.setCreatedBy("ADMIN");
         resource.setUpdatedBy("ADMIN");
-        List<Integer> assignedResources = resourceRepository.findByManagerIdIsNull()
-                .stream()
-                .map(Resource::getId)
-                .toList();
-        resourceDTO.setAssignedResourceIds(assignedResources);
+
         Integer managerId = resourceDTO.getManagerId();
         if (Predicates.isIdNotEmpty.test(managerId)) {
             Resource manager = resourceObjectFactory.getObject();
@@ -401,7 +438,6 @@ public class ResourceServiceImpl implements ResourceService {
         }
         return resource;
     }
-
     private List<ResourceDTO> buildResourcesDTO(List<Resource> resources) {
         List<ResourceDTO> managerResourcesDTO = new ArrayList<>();
         resources.forEach(resource -> {
@@ -410,7 +446,6 @@ public class ResourceServiceImpl implements ResourceService {
             if (isNotNull.test(resource.getManager())) {
                 resourceDTO.setManagerId(resource.getManager().getId());
             }
-            //   resourceDTO.setResourceAttachments(buildAttachments(resource.getAttachments()));
             BeanUtils.copyProperties(resource, resourceDTO);
             resourceDTO.setClient(resource.getClient());
             resourceDTO.setResourceType(resource.getResourceType());
@@ -442,7 +477,6 @@ public class ResourceServiceImpl implements ResourceService {
             resourceAttachmentDTO.setAttachmentId(resourceAttachments.getAttachmentId());
             resourceAttachmentDTO.setFileName(resourceAttachments.getFileName());
             attachmentDTOS.add(resourceAttachmentDTO);
-
         });
         return attachmentDTOS;
     }
@@ -455,10 +489,6 @@ public class ResourceServiceImpl implements ResourceService {
         BeanUtils.copyProperties(resourceDTO, updateResource);
         updateResource.setLinkedin(resourceDTO.getLinkedin());
         updateResource.setAttachments(buildAttachments(updateResource, attachments));
-       /* Credentials credentials = buildCredentials(resourceDTO.getEmail(), resourceDTO.getCreatedAt(), resourceDTO.getCreatedBy(),
-                resourceDTO.getUpdatedAt(), resourceDTO.getUpdatedBy());
-        updateResource.setCredentials(credentials);
-        credentials.setResource(updateResource);*/
         Permission permission = permissionObjectFactory.getObject();
         permission.setId(resourceDTO.getPermissionId());
         updateResource.setPermission(permission);
@@ -515,7 +545,6 @@ public class ResourceServiceImpl implements ResourceService {
             mimeMultipart.addBodyPart(textBodyPart);
             mimeMultipart.addBodyPart(pdfBodyPart);
             message.setContent(mimeMultipart);
-//            Transport.send(message);
             log.info("Sent message successfully....");
         } catch (MessagingException mex) {
             mex.printStackTrace();
@@ -532,7 +561,7 @@ public class ResourceServiceImpl implements ResourceService {
         document.addSubject("Testing email PDF");
         document.addKeywords("iText, email");
         Paragraph paragraph = new Paragraph();
-        paragraph.add(new Chunk(resource.getFirstName() + " Thanks for Applying Technology:" + resource.getTechnology()  + "Skill:" + resource.getSkill() + "Experience:" + resource.getExperience() + " Years Position in Sunshine Creative Labs \n"
+        paragraph.add(new Chunk(resource.getFirstName() + " Thanks for Applying Technology:" + resource.getTechnology() + "Skill:" + resource.getSkill() + "Experience:" + resource.getExperience() + " Years Position in Sunshine Creative Labs \n"
                 + "Please Use these credentials to login Resource Tracker \n"
                 + "URL : http://www.resourcetracker.sscreativelabs.com/login" + "\n" + "UserName :" + resource.getEmail() + "\n"
                 + "Password : " + resource.getCredentials().getPassword()));
@@ -548,35 +577,20 @@ public class ResourceServiceImpl implements ResourceService {
         if (!source.getTechnology().equalsIgnoreCase(resourceDTO.getTechnology())) {
             email.append("Technology:" + resourceDTO.getTechnology() + "\n");
         }
-        if (!source.getComments().equalsIgnoreCase(resourceDTO.getComments())) {
-            email.append("Comments:" + resourceDTO.getComments() + "\n");
-        }
         if (!source.getEmail().equalsIgnoreCase(resourceDTO.getEmail())) {
             email.append("Email:" + resourceDTO.getEmail() + "\n");
         }
         if (!source.getEmploymentType().equalsIgnoreCase(resourceDTO.getEmploymentType())) {
             email.append("EmploymentType:" + resourceDTO.getEmploymentType() + "\n");
         }
-        if (!source.getEndDate().equals(resourceDTO.getEndDate())) {
-            email.append("EndDate:" + resourceDTO.getEndDate() + "\n");
-        }
-        if (!source.getExperience().equals(resourceDTO.getExperience())) {
-            email.append("Experience:" + resourceDTO.getExperience() + "\n");
-        }
-        if (!source.getLinkedin().equalsIgnoreCase(resourceDTO.getLinkedin())) {
-            email.append("LinkedIn:" + resourceDTO.getLinkedin() + "\n");
+        if (!String.valueOf(source.getExperience()).equals(String.valueOf(resourceDTO.getExperience()))) {
+            email.append("Experience: ").append(resourceDTO.getExperience()).append("\n");
         }
         if (!source.getPhone().equalsIgnoreCase(resourceDTO.getPhone())) {
             email.append("Phone:" + resourceDTO.getPhone() + "\n");
         }
         if (!source.getResourceName().equalsIgnoreCase(resourceDTO.getResourceName())) {
             email.append("Resource Name:" + resourceDTO.getResourceName() + "\n");
-        }
-        if (!source.getStartDate().equals(resourceDTO.getStartDate())) {
-            email.append("StratDate:" + resourceDTO.getStartDate() + "\n");
-        }
-        if (!source.getStatus().equalsIgnoreCase(resourceDTO.getStatus())) {
-            email.append("Status:" + resourceDTO.getStatus() + "\n");
         }
         String to = resourceDTO.getEmail();
         String from = senderEmail;
@@ -590,7 +604,7 @@ public class ResourceServiceImpl implements ResourceService {
                 return new PasswordAuthentication(senderEmail, senderPassword);
             }
         });
-        String emailBody= email.toString();
+        String emailBody = email.toString();
         try {
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(from));
@@ -600,7 +614,7 @@ public class ResourceServiceImpl implements ResourceService {
             MimeBodyPart textBodyPart = new MimeBodyPart();
             textBodyPart.setText("Your Profile Got Updated");
             outputStream = new ByteArrayOutputStream();
-            writePdfForUpdate(outputStream,emailBody);
+            writePdfForUpdate(outputStream, emailBody);
             byte[] bytes = outputStream.toByteArray();
             DataSource dataSource = new ByteArrayDataSource(bytes, "application/pdf");
             MimeBodyPart pdfBodyPart = new MimeBodyPart();
@@ -617,7 +631,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private void writePdfForUpdate(ByteArrayOutputStream outputStream,String emailBody) throws DocumentException {
+    private void writePdfForUpdate(ByteArrayOutputStream outputStream, String emailBody) throws DocumentException {
         Document document = new Document();
         PdfWriter.getInstance(document, outputStream);
         document.open();
@@ -631,6 +645,13 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
 
+    /**
+     * Builds a ResourceDTO from a Resource entity.
+     *
+     * KEY FIX: For managers (permissionId == 3), queries the repository to find
+     * all employees under this manager and populates assignedResourceIds.
+     * Previously this field was never set, so the frontend always saw null.
+     */
     private ResourceDTO buildResourceDTO(Resource resource) {
         if (isNotNull.test(resource)) {
             ResourceDTO resourceDTO = resourceDTOObjectFactory.getObject();
@@ -642,7 +663,22 @@ public class ResourceServiceImpl implements ResourceService {
             resourceDTO.setLinkedin(resource.getLinkedin());
             resourceDTO.setClient(resource.getClient());
             resourceDTO.setResourceType(resource.getResourceType());
-            // resourceDTO.setProjects(buildProjectsDTO(resource.getProjects()));
+
+            // ── Populate assignedResourceIds for managers ──────────────────
+            // We query by managerId and exclude TERMINATED employees so the
+            // frontend always gets an accurate, up-to-date list of who reports
+            // to this manager. This fixes the null response that caused assigned
+            // employees to never appear on the view/edit pages.
+            if (resource.getPermission() != null && resource.getPermission().getId() == 3) {
+                List<Resource> assignedEmployees = resourceRepository
+                        .findByManagerIdAndStatusNotOrderByIdDesc(resource.getId(), "TERMINATED");
+                List<Integer> assignedIds = assignedEmployees.stream()
+                        .map(Resource::getId)
+                        .collect(Collectors.toList());
+                resourceDTO.setAssignedResourceIds(assignedIds);
+            }
+            // ──────────────────────────────────────────────────────────────
+
             return resourceDTO;
         }
         return null;
@@ -680,7 +716,6 @@ public class ResourceServiceImpl implements ResourceService {
                 else
                     attachment.setCreatedBy(resource.getCreatedBy());
                 resourceAttachments.add(attachment);
-
             });
         }
         return resourceAttachments;

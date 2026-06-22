@@ -14,4 +14,8 @@ public interface OpeningsRepository extends JpaRepository<Openings, Integer> {
     Openings findByName(String name);
 
     Optional<Openings> findByPublicUrlKey(String publicUrlKey);
+
+    List<Openings> findByStatusIgnoreCase(String terminated);
+
+    List<Openings> findAllByOrderByIdDesc();
 }
