@@ -228,8 +228,7 @@ public class CandidateServiceImpl implements CandidateService {
             // Build Tracking Link
             // ===============================
 
-            String trackingLink = "http://localhost:3000/track?token=" + token;
-
+            String trackingLink = "https://candidate-tracker-application.vercel.app/track?token=" + token;
             // ===============================
             // Save Attachments
             // ===============================
