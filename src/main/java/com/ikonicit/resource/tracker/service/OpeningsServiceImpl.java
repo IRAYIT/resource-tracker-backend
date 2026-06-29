@@ -253,7 +253,7 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
         dto.setPublicUrlKey(openings.getPublicUrlKey());
 
         if (openings.getPublicUrlKey() != null) {
-            dto.setPublicUrl("http://localhost:3000/jobs/apply/" + openings.getPublicUrlKey());
+            dto.setPublicUrl("https://candidate-tracker-application.vercel.app/jobs/apply/" + openings.getPublicUrlKey());
         }
 
         // ================================
