@@ -2,6 +2,7 @@ package com.ikonicit.resource.tracker.controller;
 
 import com.ikonicit.resource.tracker.dto.OpeningsDTO;
 import com.ikonicit.resource.tracker.dto.OpeningsResponseDTO;
+import com.ikonicit.resource.tracker.entity.Openings;
 import com.ikonicit.resource.tracker.service.OpeningsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -163,5 +164,19 @@ public class OpeningsController {
     public ResponseEntity<List<OpeningsResponseDTO>> getAllOpenings() {
         log.info("getAllOpenings");
         return ResponseEntity.ok(openingsService.getAllOpenings());
+    }
+
+    // Controller
+    @PatchMapping(path = "/restore/{id}")
+    public ResponseEntity<String> restoreOpening(@PathVariable(value = "id") final Integer id) {
+        log.info("restoreOpening");
+        return ResponseEntity.ok(openingsService.restoreOpening(id));
+    }
+
+    // Controller
+    @GetMapping(path = "/closed")
+    public ResponseEntity<List<Openings>> getClosedOpenings() {
+        log.info("getClosedOpenings");
+        return ResponseEntity.ok(openingsService.getClosedOpenings());
     }
 }

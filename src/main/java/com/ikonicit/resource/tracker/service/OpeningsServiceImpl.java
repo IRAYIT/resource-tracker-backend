@@ -203,7 +203,20 @@ public List<OpeningsResponseDTO> getAllOpenings() {
     return buildOpeningsDTOList(openingsRepository.findAllByOrderByIdDesc());
 }
 
-private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) {
+    @Override
+    // Service
+    public String restoreOpening(Integer id) {
+        Optional<Openings> openingsOptional = openingsRepository.findById(id);
+        if (!openingsOptional.isPresent()) {
+            throw new ResourceNotFoundException("Openings Not Found in the database");
+        }
+        Openings openings = openingsOptional.get();
+        openings.setStatus(Constants.ACTIVE); // ← placeholder, see note below
+        openingsRepository.save(openings);
+        log.info("Opening Restored Successfully");
+        return "Opening Restored Successfully";
+    }
+    private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) {
     List<OpeningsResponseDTO> openingsDTOS = new ArrayList<>();
     openings.forEach(opening -> {
         openingsDTOS.add(buildOpeningsDTO(opening));
@@ -211,6 +224,10 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
     return openingsDTOS;
 }
 
+    // Service
+    public List<Openings> getClosedOpenings() {
+        return openingsRepository.findByStatus(Constants.TERMINATED);
+    }
     private Openings buildOpenings(OpeningsDTO dto) {
 
         Integer createdBy = dto.getCreatedBy();
@@ -281,6 +298,7 @@ private List<OpeningsResponseDTO> buildOpeningsDTOList(List<Openings> openings) 
 
         return dto;
     }
+
 
     private String generatePublicKey() {
         return UUID.randomUUID().toString().replace("-", "").substring(0,10);

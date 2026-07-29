@@ -18,4 +18,7 @@ public interface OpeningsRepository extends JpaRepository<Openings, Integer> {
     List<Openings> findByStatusIgnoreCase(String terminated);
 
     List<Openings> findAllByOrderByIdDesc();
+
+    // Repository
+    List<Openings>  findByStatus(String status);
 }

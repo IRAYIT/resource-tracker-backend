@@ -2,6 +2,7 @@ package com.ikonicit.resource.tracker.service;
 
 import com.ikonicit.resource.tracker.dto.OpeningsDTO;
 import com.ikonicit.resource.tracker.dto.OpeningsResponseDTO;
+import com.ikonicit.resource.tracker.entity.Openings;
 
 import java.util.List;
 
@@ -27,4 +28,8 @@ public interface OpeningsService {
     OpeningsResponseDTO getOpeningByPublicUrlKey(String publicUrlKey);
 
     List<OpeningsResponseDTO> getAllOpenings();
+
+    String restoreOpening(Integer id);
+
+    List<Openings> getClosedOpenings();
 }

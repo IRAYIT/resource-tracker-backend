@@ -2,12 +2,15 @@ package com.ikonicit.resource.tracker.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import jakarta.persistence.Id;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "candidate_Openings")
 @Data
+@SQLDelete(sql = "UPDATE candidate_Openings SET is_deleted = true, deleted_at = now() WHERE id = ?")
+@SQLRestriction("is_deleted = false")
 public class Candidate_Openings {
 
     @Id
@@ -80,6 +83,19 @@ public class Candidate_Openings {
      */
     @Column(name = "retain_cv_for_future", nullable = true)
     private Boolean retainCvForFuture;
+
+    /**
+     * Soft-delete flag. When true, this record is excluded from all normal
+     * Hibernate queries via the class-level @SQLRestriction above.
+     */
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
+    /**
+     * Timestamp of when this record was soft-deleted. Null while active.
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @OneToOne(mappedBy = "candidateOpenings", fetch = FetchType.LAZY)
     private CandidateAttachments attachments;

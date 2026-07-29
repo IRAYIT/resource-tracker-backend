@@ -1,6 +1,7 @@
 package com.ikonicit.resource.tracker.service;
 
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
+import com.ikonicit.resource.tracker.dto.DeletedCandidateDto;
 import com.ikonicit.resource.tracker.entity.Candidate_Openings;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,7 +35,11 @@ public interface CandidateService {
 
     List<CandidateDTO> getAllCandidates();
 
-    void deleteCandidate(Long candidateId);
+    boolean deleteCandidate(Long candidateId);
 
     List<CandidateDTO> getCandidatesByOpening(Integer openingId);
+
+    boolean restoreCandidate(Long candidateId);
+
+    List<DeletedCandidateDto> getDeletedCandidates();
 }

@@ -2,7 +2,9 @@ package com.ikonicit.resource.tracker.repository;
 
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
 import com.ikonicit.resource.tracker.entity.Candidate_Openings;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -61,4 +63,14 @@ public interface CandidateRepository extends JpaRepository<Candidate_Openings, L
     Long countByOpeningId(@Param("openingId") Integer openingId);
 
     List<Candidate_Openings> findByOpening_Id(Integer openingId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE candidate_Openings SET is_deleted = false, deleted_at = null " +
+            "WHERE id = :id AND is_deleted = true", nativeQuery = true)
+    int restoreById(@Param("id") Long id);
+
+    // --- Repository ---
+    @Query(value = "SELECT * FROM candidate_Openings WHERE is_deleted = true", nativeQuery = true)
+    List<Candidate_Openings> findAllDeleted();
     }

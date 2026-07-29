@@ -2,6 +2,7 @@ package com.ikonicit.resource.tracker.service;
 
 import com.google.gson.Gson;
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
+import com.ikonicit.resource.tracker.dto.DeletedCandidateDto;
 import com.ikonicit.resource.tracker.entity.CandidateAttachments;
 import com.ikonicit.resource.tracker.entity.Candidate_Openings;
 import com.ikonicit.resource.tracker.entity.ApplicationTracking;
@@ -10,6 +11,7 @@ import com.ikonicit.resource.tracker.entity.Resource;
 import com.ikonicit.resource.tracker.exception.BadRequestException;
 import com.ikonicit.resource.tracker.repository.*;
 import com.ikonicit.resource.tracker.utils.SkillDictionary;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -549,21 +551,30 @@ public class CandidateServiceImpl implements CandidateService {
         return candidateRepository.getAllCandidatesWithAttachments();
     }
 
-    public void deleteCandidate(Long candidateId) {
+    // --- Service ---
+    public boolean deleteCandidate(Long candidateId) {
         Optional<Candidate_Openings> candidateOpenings = candidateRepository.findById(candidateId);
-
-        if (candidateOpenings.isPresent()) {
-            Optional<CandidateAttachments> attachments =
-                    candidateAttachmentsRepository.findByCandidateOpenings_Id(candidateId);
-
-            if (attachments.isPresent()) {
-                candidateAttachmentsRepository.deleteById(
-                        attachments.get().getCandidateAttachmentId()
-                );
-            }
-
-            candidateRepository.deleteById(candidateId);
+        if (candidateOpenings.isEmpty()) {
+            return false;
         }
+        candidateRepository.deleteById(candidateId); // triggers @SQLDelete -> soft delete
+        return true;
+    }
+
+    @Transactional
+    public boolean restoreCandidate(Long candidateId) {
+        int updated = candidateRepository.restoreById(candidateId);
+        return updated > 0;
+    }
+
+    // Service
+    @Transactional(readOnly = true)
+    @Override
+    public List<DeletedCandidateDto> getDeletedCandidates() {
+        return candidateRepository.findAllDeleted()
+                .stream()
+                .map(DeletedCandidateDto::from)
+                .toList();
     }
 
     @Override

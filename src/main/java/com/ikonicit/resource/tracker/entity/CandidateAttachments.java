@@ -39,7 +39,9 @@ public class CandidateAttachments {
     @Column(name = "additional_document_type")
     private String additionalDocumentType;
 
+    // CandidateAttachments.java
     @OneToOne
     @JoinColumn(name = "candidate_id")
+    @com.fasterxml.jackson.annotation.JsonBackReference
     private Candidate_Openings candidateOpenings;
 }

@@ -1,6 +1,7 @@
 package com.ikonicit.resource.tracker.controller;
 
 import com.ikonicit.resource.tracker.dto.CandidateDTO;
+import com.ikonicit.resource.tracker.dto.DeletedCandidateDto;
 import com.ikonicit.resource.tracker.entity.Candidate_Openings;
 import com.ikonicit.resource.tracker.service.CandidateService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,15 +109,31 @@ import java.util.List;
         return ResponseEntity.ok(candidates);
     }
 
+    // --- Controller ---
     @DeleteMapping("/delete/{candidateId}")
-    public void deleteCandidate(@PathVariable Long candidateId) {
-        candidateService.deleteCandidate(candidateId);
+    public ResponseEntity<Void> deleteCandidate(@PathVariable Long candidateId) {
+        boolean deleted = candidateService.deleteCandidate(candidateId);
+        return deleted ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 
+    @PatchMapping("/restore/{candidateId}")
+    public ResponseEntity<Void> restoreCandidate(@PathVariable Long candidateId) {
+        boolean restored = candidateService.restoreCandidate(candidateId);
+        return restored ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
+    }
     @GetMapping("/byOpening/{openingId}")
     public ResponseEntity<List<CandidateDTO>> getCandidatesByOpening(
             @PathVariable Integer openingId) {
         return ResponseEntity.ok(candidateService.getCandidatesByOpening(openingId));
+    }
+
+    // --- Controller ---
+// Controller
+    @GetMapping("/deleted")
+    public List<DeletedCandidateDto> getDeletedCandidates() {
+        return candidateService.getDeletedCandidates();
     }
     }
 
