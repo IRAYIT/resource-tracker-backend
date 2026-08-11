@@ -9,6 +9,5 @@ import java.util.List;
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Integer> {
     List<LeaveRequest> findByResourceId(Integer resourceId);
-
-    List<LeaveRequest> findByResource_ManagerId(Integer managerId);
+    List<LeaveRequest> findByResource_ManagerIdAndResource_StatusNot(Integer managerId, String status);
 }

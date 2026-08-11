@@ -101,7 +101,7 @@ public class ResourceControllerTest {
 
     @Test
     public void getResourceByName() throws Exception {
-        when(resourceService.findByResourceName("crRonaldo")).thenReturn(ResourceUtils.mockResources().get(1));
+        when(resourceService.findAllByResourceName("crRonaldo")).thenReturn(ResourceUtils.mockResources());
         String uri = "/api/v1/resource/byName/crRonaldo";
         MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.get(uri).accept(MediaType.APPLICATION_JSON_VALUE))
                 .andReturn();
