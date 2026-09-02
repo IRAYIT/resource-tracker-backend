@@ -7,8 +7,8 @@ management:
 
 spring:
   datasource:
-    url: jdbc:postgresql://pg-5bdffa4-candidate-tracker.a.aivencloud.com:22880/defaultdb?sslmode=require
-    username: avnadmin
+    url: jdbc:postgresql://candidate-tracker-db.postgres.database.azure.com:5432/postgres?sslmode=require
+    username: candidatetrackeradmin
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
