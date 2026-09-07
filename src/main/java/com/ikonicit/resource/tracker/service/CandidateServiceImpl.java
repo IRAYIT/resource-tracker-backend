@@ -670,4 +670,50 @@ public class CandidateServiceImpl implements CandidateService {
 
         return detectedSkills;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CandidateDTO getDeletedCandidate(Long candidateId) {
+
+        Candidate_Openings candidate = candidateRepository
+                .findDeletedCandidateById(candidateId)
+                .orElseThrow(() -> new RuntimeException("Deleted candidate not found"));
+
+        CandidateDTO dto = new CandidateDTO();
+
+        dto.setId(candidate.getId());
+        dto.setFirstName(candidate.getFirstName());
+        dto.setLastName(candidate.getLastName());
+        dto.setEmail(candidate.getEmail());
+        dto.setPhone(candidate.getPhone());
+        dto.setExperience(candidate.getExperience());
+
+        dto.setCurrentSalary(candidate.getCurrentSalary());
+        dto.setCurrentSalaryCurrency(candidate.getCurrentSalaryCurrency());
+
+        dto.setExpectedSalary(candidate.getExpectedSalary());
+        dto.setExpectedSalaryCurrency(candidate.getExpectedSalaryCurrency());
+
+        dto.setSkills(candidate.getSkills());
+        dto.setLanguagesKnown(candidate.getLanguagesKnown());
+        dto.setNoticePeriod(candidate.getNoticePeriod());
+        dto.setVisaStatus(candidate.getVisaStatus());
+        dto.setApplicationStatus(candidate.getApplicationStatus());
+        dto.setSource(candidate.getSource());
+        dto.setLocation(candidate.getLocation());
+        dto.setEmploymentType(candidate.getEmploymentType());
+        dto.setRetainCvForFuture(candidate.getRetainCvForFuture());
+
+        Optional<CandidateAttachments> candidateAttachments =
+                candidateAttachmentsRepository
+                        .findByCandidateOpenings_Id(candidate.getId());
+
+        candidateAttachments.ifPresent(attachment -> {
+            dto.setCvName(attachment.getCvName());
+            dto.setCoverLetterName(attachment.getCoverLetterName());
+            dto.setAdditionalDocumentName(attachment.getAdditionalDocumentName());
+        });
+
+        return dto;
+    }
 }

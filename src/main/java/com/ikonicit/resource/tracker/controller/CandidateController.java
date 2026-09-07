@@ -47,6 +47,15 @@ import java.util.List;
         return ResponseEntity.ok(candidate);
     }
 
+    @GetMapping("/deleted/{candidateId}")
+    public ResponseEntity<CandidateDTO> getDeletedCandidate(
+            @PathVariable Long candidateId) {
+
+        CandidateDTO candidate = candidateService.getDeletedCandidate(candidateId);
+
+        return ResponseEntity.ok(candidate);
+    }
+
     @PutMapping(value = "/update/{candidateId}", consumes = "multipart/form-data")
     public ResponseEntity<CandidateDTO> updateCandidate(
 

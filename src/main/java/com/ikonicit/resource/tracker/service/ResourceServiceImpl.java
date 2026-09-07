@@ -34,6 +34,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -66,6 +67,8 @@ public class ResourceServiceImpl implements ResourceService {
 
     Predicate<Object> isNull = Predicates.isNull;
 
+    private static final String DEFAULT_PASSWORD = "RESour$@!ce9";
+
     @Autowired
     private ObjectFactory<Resource> resourceObjectFactory;
 
@@ -86,6 +89,9 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Autowired
     private ObjectFactory<Credentials> credentialsObjectFactory;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private JavaMailSender javaMailSender;
@@ -223,7 +229,7 @@ public class ResourceServiceImpl implements ResourceService {
         Resource resource = resourceOptional.get();
         resource.setStatus(Constants.TERMINATED);
         resourceRepository.save(resource);
-        log.info("Resource Deleted Succesfully");
+        log.info("Resource Deleted Successfully");
         return true;
     }
 
@@ -506,7 +512,7 @@ public class ResourceServiceImpl implements ResourceService {
                                          String updatedBy) {
         Credentials credentials = credentialsObjectFactory.getObject();
         credentials.setEmail(email);
-        credentials.setPassword("RESour$@!ce9");
+        credentials.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
         credentials.setCreatedAt(createdAt);
         credentials.setCreatedBy(createdBy);
         credentials.setUpdatedAt(updatedAt);
@@ -564,7 +570,7 @@ public class ResourceServiceImpl implements ResourceService {
         paragraph.add(new Chunk(resource.getFirstName() + " Thanks for Applying Technology:" + resource.getTechnology() + "Skill:" + resource.getSkill() + "Experience:" + resource.getExperience() + " Years Position in Sunshine Creative Labs \n"
                 + "Please Use these credentials to login Resource Tracker \n"
                 + "URL : http://www.resourcetracker.sscreativelabs.com/login" + "\n" + "UserName :" + resource.getEmail() + "\n"
-                + "Password : " + resource.getCredentials().getPassword()));
+                + "Password : " + DEFAULT_PASSWORD));
         document.add(paragraph);
         document.close();
     }
