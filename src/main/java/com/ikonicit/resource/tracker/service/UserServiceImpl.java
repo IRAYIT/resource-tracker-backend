@@ -13,6 +13,7 @@ import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -40,43 +41,71 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private JavaMailSender javaMailSender;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     @Override
     public String changePassword(ChangePasswordDTO changePasswordDTO) {
-        Credentials credentials = credentialsRepository.findById(changePasswordDTO.getId()).get();
-        if (Predicates.isNotNull.test(credentials)) {
-            if (credentials.getPassword().equals(changePasswordDTO.getOldPassword())) {
-                credentials.setPassword(changePasswordDTO.getNewPassword());
-                credentialsRepository.saveAndFlush(credentials);
-                log.info("Password Changed Successfully");
-                return "Password Changed Successfully";
-            } else {
-                return "Old Password Doesn't Match";
-            }
+
+        Credentials credentials = credentialsRepository.findById(changePasswordDTO.getId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Given credentials not found"));
+
+        String storedPassword = credentials.getPassword();
+        String oldPassword = changePasswordDTO.getOldPassword();
+
+        boolean oldPasswordMatches;
+
+        if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
+            oldPasswordMatches = passwordEncoder.matches(oldPassword, storedPassword);
+        } else {
+            oldPasswordMatches = storedPassword.equals(oldPassword);
         }
-        throw new ResourceNotFoundException("Given credentials not found");
+        if (!oldPasswordMatches) {
+            return "Old Password Doesn't Match";
+        }
+        credentials.setPassword(passwordEncoder.encode(changePasswordDTO.getNewPassword()));
+        credentialsRepository.saveAndFlush(credentials);
+        log.info("Password Changed Successfully");
+        return "Password Changed Successfully";
     }
 
     @Override
     public ResourceDTO login(LoginDTO loginDTO) {
-        if (Predicates.isNotNull.test(credentialsRepository.findByEmailAndPassword(loginDTO.getEmail(), loginDTO.getPassword()))) {
-            Credentials credentials = credentialsRepository.findByEmailAndPassword(loginDTO.getEmail(), loginDTO.getPassword());
-            Resource employee = credentials.getResource();
-            ResourceDTO employeeDTO = resourceDTOObjectFactory.getObject();
-            BeanUtils.copyProperties(employee, employeeDTO);
-            PermissionDTO permission = permissionDTOObjectFactory.getObject();
-            BeanUtils.copyProperties(employee.getPermission(), permission);
-            employeeDTO.setPermission(permission);
-            return employeeDTO;
+
+        Credentials credentials =
+                credentialsRepository.findByEmail(loginDTO.getEmail());
+
+        if (credentials == null) {
+            throw new ResourceNotFoundException("Login failed. Please try again.");
         }
-        throw new ResourceNotFoundException("User not found");
+        String storedPassword = credentials.getPassword();
+        String enteredPassword = loginDTO.getPassword();
+
+        boolean passwordMatches;
+        if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
+            passwordMatches = passwordEncoder.matches(enteredPassword, storedPassword);
+        } else {
+            passwordMatches = storedPassword.equals(enteredPassword);
+        }
+        if (!passwordMatches) {
+            throw new ResourceNotFoundException("Login failed. Please try again.");
+        }
+        Resource employee = credentials.getResource();
+        ResourceDTO employeeDTO = resourceDTOObjectFactory.getObject();
+        BeanUtils.copyProperties(employee, employeeDTO);
+        PermissionDTO permission = permissionDTOObjectFactory.getObject();
+        BeanUtils.copyProperties(employee.getPermission(), permission);
+        employeeDTO.setPermission(permission);
+        return employeeDTO;
     }
 
     @Override
     public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) {
         Credentials credentials = credentialsRepository.findByEmail(forgotPasswordDTO.getEmail());
         if (Predicates.isNotNull.test(credentials)) {
-            credentials.setPassword(forgotPasswordDTO.getPassword());
+            credentials.setPassword(passwordEncoder.encode(forgotPasswordDTO.getPassword()));
             credentialsRepository.save(credentials);
             return "Password Changed Successfully";
         }
@@ -116,7 +145,7 @@ public class UserServiceImpl implements UserService {
         if (credentials == null) {
             throw new ResourceNotFoundException("User not found");
         }
-        credentials.setPassword(dto.getNewPassword());
+        credentials.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         credentialsRepository.save(credentials);
         return "Password set successfully";
     }

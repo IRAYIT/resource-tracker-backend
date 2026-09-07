@@ -25,9 +25,6 @@ import org.springframework.web.bind.annotation.*;
  */
 public class UserController {
 
-    @Autowired
-    UserService userService;
-
     /**
      * Change Password for User.
      * @param changePasswordDTO of the User
@@ -47,6 +44,9 @@ public class UserController {
         log.info("Change Password");
         return ResponseEntity.ok(userService.changePassword(changePasswordDTO));
     }
+
+    @Autowired
+    UserService userService;
 
     /**
      * Login for User.

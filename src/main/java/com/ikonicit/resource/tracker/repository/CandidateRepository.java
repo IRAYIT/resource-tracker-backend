@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
 import java.util.List;
 
@@ -58,6 +59,9 @@ public interface CandidateRepository extends JpaRepository<Candidate_Openings, L
             "LEFT JOIN c.attachments a " +
             "ORDER BY c.firstName ASC")   // ← changed from firstName ASC
     List<CandidateDTO> getAllCandidatesWithAttachments();
+
+    @Query(value = "SELECT * FROM candidate_Openings WHERE id = :id AND is_deleted = true", nativeQuery = true)
+    Optional<Candidate_Openings> findDeletedCandidateById(@Param("id") Long id);
 
     @Query("SELECT COUNT(c) FROM Candidate_Openings c WHERE c.opening.id = :openingId")
     Long countByOpeningId(@Param("openingId") Integer openingId);

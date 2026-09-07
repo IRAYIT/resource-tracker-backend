@@ -41,5 +41,7 @@ public interface CandidateService {
 
     boolean restoreCandidate(Long candidateId);
 
+    CandidateDTO getDeletedCandidate(Long candidateId);
+
     List<DeletedCandidateDto> getDeletedCandidates();
 }

@@ -226,7 +226,7 @@ public List<OpeningsResponseDTO> getAllOpenings() {
 
     // Service
     public List<Openings> getClosedOpenings() {
-        return openingsRepository.findByStatus(Constants.TERMINATED);
+        return openingsRepository.findByStatus(Constants.CLOSED);
     }
     private Openings buildOpenings(OpeningsDTO dto) {
 
