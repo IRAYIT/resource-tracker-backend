@@ -270,8 +270,7 @@ public List<OpeningsResponseDTO> getAllOpenings() {
         dto.setPublicUrlKey(openings.getPublicUrlKey());
 
         if (openings.getPublicUrlKey() != null) {
-            dto.setPublicUrl("https://candidate-tracker-application.vercel.app/jobs/apply/" + openings.getPublicUrlKey());
-        }
+            dto.setPublicUrl("https://candidatetracker.i-raysolutions.com/jobs/apply/" + openings.getPublicUrlKey());        }
 
         // ================================
         // Resolve createdBy
