@@ -68,7 +68,12 @@ public class OpeningsServiceImpl implements OpeningsService {
 
         Openings openings = buildOpenings(openingsDTO);
 
-        openings.setStatus("ACTIVE");
+        openings.setStatus(
+                "Close".equalsIgnoreCase(openingsDTO.getStatus()) ||
+                        "CLOSED".equalsIgnoreCase(openingsDTO.getStatus())
+                        ? Constants.CLOSED
+                        : Constants.ACTIVE
+        );
 
 
         Resource createdBy = resourceRepository.findById(openingsDTO.getCreatedBy())
