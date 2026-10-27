@@ -121,7 +121,7 @@ public class UserServiceImpl implements UserService {
     public String sendOtp(String email) {
         Credentials credentials = credentialsRepository.findByEmail(email);
         if (credentials == null) {
-            throw new ResourceNotFoundException("No account found with this email.");
+            return "No account found with this email.";
         }
         String otp = otpService.generateOtp(email);
         SimpleMailMessage message = new SimpleMailMessage();
